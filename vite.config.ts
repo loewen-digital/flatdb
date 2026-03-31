@@ -5,13 +5,27 @@ import { resolve } from 'path'
 export default defineConfig({
   build: {
     lib: {
-      entry: resolve(__dirname, 'src/index.ts'),
+      entry: {
+        index: resolve(__dirname, 'src/index.ts'),
+        svelte: resolve(__dirname, 'src/adapters/svelte.ts'),
+        vue: resolve(__dirname, 'src/adapters/vue.ts'),
+        solid: resolve(__dirname, 'src/adapters/solid.ts'),
+      },
       formats: ['es', 'cjs'],
-      fileName: 'index',
     },
     rollupOptions: {
-      external: ['fs', 'fs/promises', 'path', 'zod', 'nanoid'],
+      external: [
+        'fs',
+        'fs/promises',
+        'path',
+        'zod',
+        'nanoid',
+        'vue',
+        'solid-js',
+        'svelte',
+        'svelte/store',
+      ],
     },
   },
-  plugins: [dts({ rollupTypes: true })],
+  plugins: [dts()],
 })
