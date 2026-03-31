@@ -1,6 +1,7 @@
 import fs from 'fs/promises'
+import { watch as fsWatch } from 'fs'
 import path from 'path'
-import type { StorageAdapter } from './types.js'
+import type { StorageAdapter, WatchEvent } from './types.js'
 
 export class FsAdapter implements StorageAdapter {
   constructor(private basePath: string) {}
@@ -60,5 +61,24 @@ export class FsAdapter implements StorageAdapter {
     const toFull = this.resolve(to)
     await fs.mkdir(path.dirname(toFull), { recursive: true })
     await fs.rename(this.resolve(from), toFull)
+  }
+
+  watch(dir: string, cb: (event: WatchEvent) => void): () => void {
+    const fullDir = this.resolve(dir)
+    const watcher = fsWatch(fullDir, { recursive: true }, (eventType, filename) => {
+      if (!filename || !filename.endsWith('.json')) return
+      if (filename.endsWith('_index.json')) return
+
+      const filePath = filename.replace(/\\/g, '/') // normalize Windows paths
+      const watchEvent: WatchEvent = {
+        type: eventType === 'rename' ? 'create' : 'update',
+        path: filePath,
+      }
+      cb(watchEvent)
+    })
+
+    return () => {
+      watcher.close()
+    }
   }
 }

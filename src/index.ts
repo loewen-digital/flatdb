@@ -1,4 +1,7 @@
 export type { StorageAdapter, WatchEvent } from './types.js'
 export { FsAdapter } from './fs-adapter.js'
 export { Collection } from './collection.js'
+export { PathCollection } from './path-collection.js'
+export type { TreeNode } from './path-collection.js'
 export { collection, flatdb } from './flatdb.js'
+export { ref } from './ref.js'
