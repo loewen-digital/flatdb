@@ -1,6 +1,7 @@
 import type { ZodType } from 'zod'
 import type { StorageAdapter, CollectionOptions, CollectionDefinition } from './types.js'
 import { FsAdapter } from './fs-adapter.js'
+import { IndexedDBAdapter } from './indexeddb-adapter.js'
 import { Collection } from './collection.js'
 import { PathCollection } from './path-collection.js'
 import type { RefResolver } from './ref.js'
@@ -22,8 +23,16 @@ export function flatdb<T extends Record<string, CollectionDefinition>>(
   collections?: T,
   options?: FlatDbOptions,
 ): CollectionMap<T> {
-  const adapter: StorageAdapter =
-    typeof pathOrAdapter === 'string' ? new FsAdapter(pathOrAdapter) : pathOrAdapter
+  let adapter: StorageAdapter
+  if (typeof pathOrAdapter === 'string') {
+    if (pathOrAdapter.startsWith('idb://')) {
+      adapter = new IndexedDBAdapter(pathOrAdapter.slice(6))
+    } else {
+      adapter = new FsAdapter(pathOrAdapter)
+    }
+  } else {
+    adapter = pathOrAdapter
+  }
 
   const result = {} as any
   const unwatchers: (() => void)[] = []
