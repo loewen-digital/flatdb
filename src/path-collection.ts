@@ -327,7 +327,7 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
 
   private async populateDoc(doc: T, populate: string[] | Record<string, any>): Promise<T> {
     if (!this._resolveRef) return doc
-    const result = { ...doc }
+    const result: Record<string, any> = { ...doc }
     const fields = Array.isArray(populate) ? populate : Object.keys(populate)
 
     for (const field of fields) {
@@ -340,7 +340,7 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
         )
       }
     }
-    return result
+    return result as T
   }
 
   private async resolveRefValue(refStr: string): Promise<any> {
@@ -362,12 +362,12 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
     maybeCb?: (results: T[]) => void,
   ): () => void {
     const filter = typeof filterOrCb === 'function' ? {} : filterOrCb
-    const cb = typeof filterOrCb === 'function' ? filterOrCb : maybeCb!
+    const cb = (typeof filterOrCb === 'function' ? filterOrCb : maybeCb!) as (results: T[]) => void
 
-    this.find(filter).then(cb)
+    this.find(filter).then(results => cb(results))
 
     const unsub = this.emitter.subscribe(() => {
-      this.find(filter).then(cb)
+      this.find(filter).then(results => cb(results))
     })
 
     return unsub
@@ -401,12 +401,10 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
           }
         })
 
-        let initialResolve: typeof resolve = null
         const initialPromise = new Promise<IteratorResult<T[]>>(r => {
-          initialResolve = r
-        })
-        self.find(filter).then(results => {
-          if (initialResolve) initialResolve({ value: results, done: false })
+          self.find(filter).then(results => {
+            r({ value: results, done: false })
+          })
         })
 
         let firstCall = true

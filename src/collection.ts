@@ -266,14 +266,15 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
     maybeCb?: (results: (T & { _id: string })[]) => void,
   ): () => void {
     const filter = typeof filterOrCb === 'function' ? {} : filterOrCb
-    const cb = typeof filterOrCb === 'function' ? filterOrCb : maybeCb!
+    const cb =
+      (typeof filterOrCb === 'function' ? filterOrCb : maybeCb!) as (results: (T & { _id: string })[]) => void
 
     // Initial query
-    this.find(filter).then(cb)
+    this.find(filter).then(results => cb(results))
 
     // Re-query on every change
     const unsub = this.emitter.subscribe(() => {
-      this.find(filter).then(cb)
+      this.find(filter).then(results => cb(results))
     })
 
     return unsub
@@ -290,49 +291,47 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
   }
 
   watch(filter: QueryFilter = {}): AsyncIterable<(T & { _id: string })[]> {
+    type Result = (T & { _id: string })[]
+    type Resolve = (value: IteratorResult<Result>) => void
     const self = this
     return {
       [Symbol.asyncIterator]() {
-        let resolve: ((value: IteratorResult<(T & { _id: string })[]>) => void) | null = null
+        let resolve: Resolve | null = null
         let done = false
 
         const unsub = self.emitter.subscribe(() => {
           if (resolve) {
+            const r = resolve
+            resolve = null
             self.find(filter).then(results => {
-              if (resolve) {
-                resolve({ value: results, done: false })
-                resolve = null
-              }
+              r({ value: results, done: false })
             })
           }
         })
 
-        // Emit initial value
-        let initialResolve: typeof resolve = null
-        const initialPromise = new Promise<IteratorResult<(T & { _id: string })[]>>(r => {
-          initialResolve = r
-        })
-        self.find(filter).then(results => {
-          if (initialResolve) initialResolve({ value: results, done: false })
+        const initialPromise = new Promise<IteratorResult<Result>>(r => {
+          self.find(filter).then(results => {
+            r({ value: results, done: false })
+          })
         })
 
         let firstCall = true
 
         return {
           next() {
-            if (done) return Promise.resolve({ value: undefined as any, done: true })
+            if (done) return Promise.resolve({ value: undefined as any, done: true as const })
             if (firstCall) {
               firstCall = false
               return initialPromise
             }
-            return new Promise<IteratorResult<(T & { _id: string })[]>>(r => {
+            return new Promise<IteratorResult<Result>>(r => {
               resolve = r
             })
           },
           return() {
             done = true
             unsub()
-            return Promise.resolve({ value: undefined as any, done: true })
+            return Promise.resolve({ value: undefined as any, done: true as const })
           },
         }
       },
