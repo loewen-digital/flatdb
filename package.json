@@ -26,6 +26,10 @@
       "types": "./dist/solid.d.ts",
       "import": "./dist/solid.js",
       "require": "./dist/solid.cjs"
+    },
+    "./r2": {
+      "types": "./dist/r2.d.ts",
+      "import": "./dist/r2.js"
     }
   },
   "scripts": {

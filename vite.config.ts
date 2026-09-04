@@ -10,6 +10,7 @@ export default defineConfig({
         svelte: resolve(__dirname, 'src/adapters/svelte.ts'),
         vue: resolve(__dirname, 'src/adapters/vue.ts'),
         solid: resolve(__dirname, 'src/adapters/solid.ts'),
+        r2: resolve(__dirname, 'src/r2-adapter.ts'),
       },
       formats: ['es', 'cjs'],
     },

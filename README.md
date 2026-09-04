@@ -189,6 +189,34 @@ import { MemoryAdapter } from '@loewen-digital/flatdb'
 const db = flatdb(new MemoryAdapter())
 ```
 
+## Cloudflare R2
+
+Run flatdb on Cloudflare Workers with R2 as the storage backend — no D1 needed. Key prefixes with `/` form the tree, same mental model as `FsAdapter`.
+
+```jsonc
+// wrangler.jsonc
+{
+  "r2_buckets": [
+    { "binding": "MY_BUCKET", "bucket_name": "my-flatdb-bucket" }
+  ]
+}
+```
+
+```ts
+import { flatdb, collection } from '@loewen-digital/flatdb'
+import { R2Adapter } from '@loewen-digital/flatdb/r2'
+import { z } from 'zod'
+
+// SvelteKit: platform.env.MY_BUCKET is the R2Bucket binding
+export function getDb(platform: App.Platform) {
+  return flatdb(new R2Adapter({ bucket: platform.env.MY_BUCKET, prefix: 'data' }), {
+    users: collection(z.object({ name: z.string(), email: z.string() })),
+  })
+}
+```
+
+`R2Adapter` accepts any binding matching the structural `R2BucketLike` interface (`get`, `put`, `delete`, `list`, optional `head`) — no dependency on `@cloudflare/workers-types` required. `watch` is not supported on R2.
+
 ## Framework Adapters
 
 ```ts
