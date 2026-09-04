@@ -40,6 +40,7 @@ Claude runs unattended via `.github/workflows/agent.yml`. Nobody answers questio
 
 **Always:**
 
+- Size and safety: before implementing, judge the scope. If it needs more than one PR (several independent parts, more than ~15 files), create sub-issues with `gh issue create` (the first labelled `ready`, the rest unlabelled), comment the list on the parent, and work only the first. Commit and push the branch after the first meaningful step and keep pushing, so nothing is lost when the run hits its turn limit.
 - Never ask. Blocked means: comment the question with options, `needs-human`, stop.
 - One issue, one branch, one PR. Conventional commits (`feat:`, `fix:`, `chore:`, ...). Never force-push. Never commit secrets.
 - Eddy merges, not the agent.

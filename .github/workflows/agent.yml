@@ -61,7 +61,7 @@ jobs:
           additional_permissions: |
             actions: read
           claude_args: |
-            --max-turns 150
+            --max-turns 250
             --allowedTools "Bash(npm:*),Bash(npx:*),Bash(gh:*),Bash(git:*),Read,Write,Edit,Glob,Grep,WebFetch"
           prompt: >-
             ${{ github.event_name == 'issues'
