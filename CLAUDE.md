@@ -30,7 +30,7 @@ Claude runs unattended via `.github/workflows/agent.yml`. Nobody answers questio
 3. Implement following the rules above. Acceptance criteria are binding; a solution proposed in the issue is not. Build what fits this project and its conventions, even where that differs from the proposal, and explain every difference in the PR under "Deviations from the issue". If the need does not belong in this project: comment why, label `needs-human`, remove `ready`, stop. If something is missing in one of our own libraries (fullstack, flatdb, sveltekit-ai-orchestrator, element-js, element-js-ssr-renderer, element-library): open an issue there (`gh issue create --repo <owner/lib>`) that states the need and the context here, with at most a non-binding proposal; add the smallest workaround marked `// UPSTREAM: <issue-url>`, keep going. Never wait for upstream.
 4. `npm test && npm run build` must pass. After three failed attempts: open a draft PR, label `needs-human`, stop.
 5. Review your own diff: security, dead code, error handling, accessibility.
-6. Open the PR (`gh pr create`): summary, `Closes #<n>`, test plan, a "Deviations from the issue" section (or "none"), and say explicitly whether auth, payments, schema, or secrets are touched. Do not post `@codex review`: Codex ignores comments from bots. Eddy requests the review.
+6. Open the PR (`gh pr create`) in the PR format below, with `Closes #<n>`. Do not post `@codex review`: Codex ignores comments from bots. Eddy requests the review.
 
 **Review** (a review on a `claude/*` PR):
 
@@ -45,3 +45,11 @@ Claude runs unattended via `.github/workflows/agent.yml`. Nobody answers questio
 - One issue, one branch, one PR. Conventional commits (`feat:`, `fix:`, `chore:`, ...). Never force-push. Never commit secrets.
 - Eddy merges, not the agent.
 - Never create or modify files under `.github/workflows/`: the App token lacks the `workflows` scope and the push is rejected. Describe the needed workflow change in a `needs-human` issue instead and continue.
+
+**Writing for humans** (issues, PRs, comments):
+
+- Everything you write is read by one person who wants to decide in thirty seconds. Result first, decisions visible, details collapsed in `<details><summary>Details</summary>…</details>`. Never drop information; move it down.
+- PR body, in this order, at most 15 lines outside `<details>`: one sentence on what changed and why; `## Deviations from the issue` (bullets, or "none"); `## Needs Eddy` (touched auth, payments, schema or secrets; new secrets; upstream issues filed; follow-ups; or "nothing"); `## Verified` (the commands that passed, one line). Design reasoning, what was tried and failed, and file-by-file notes go into `<details>` or the commit messages.
+- Issues you create (sub-issues, upstream): at most 20 lines outside `<details>`: `## Goal` (one sentence), `## Context` (why, for whom, link to the source issue), `## Acceptance criteria` (checkboxes, behaviour only), `## Proposal (non-binding)` if you have one, `## Out of scope`.
+- Comments: one sentence plus a sha or link. Reasoning, if needed, in `<details>`.
+- Commit messages carry the detail: conventional subject, body says why.
