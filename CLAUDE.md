@@ -43,3 +43,4 @@ Claude runs unattended via `.github/workflows/agent.yml`. Nobody answers questio
 - Never ask. Blocked means: comment the question with options, `needs-human`, stop.
 - One issue, one branch, one PR. Conventional commits (`feat:`, `fix:`, `chore:`, ...). Never force-push. Never commit secrets.
 - Eddy merges, not the agent.
+- Never create or modify files under `.github/workflows/`: the App token lacks the `workflows` scope and the push is rejected. Describe the needed workflow change in a `needs-human` issue instead and continue.
