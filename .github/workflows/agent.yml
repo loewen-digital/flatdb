@@ -70,3 +70,23 @@ jobs:
                 || github.event_name == 'pull_request_review'
                 && format('A review was submitted on PR #{0}. Follow CLAUDE.md, section "Agent Loop", part "Review".', github.event.pull_request.number)
                 || '' }}
+      - name: Request Codex review
+        if: github.event_name == 'issues' || github.event_name == 'pull_request_review'
+        env:
+          T: ${{ secrets.CODEX_TRIGGER_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          ISSUE: ${{ github.event.issue.number }}
+          PR: ${{ github.event.pull_request.number }}
+          BEFORE: ${{ github.event.pull_request.head.sha }}
+        run: |
+          GH_TOKEN=$(printf '%s' "$T" | tr -d '[:space:]')
+          if [ -z "$GH_TOKEN" ]; then echo "CODEX_TRIGGER_TOKEN not set, skipping"; exit 0; fi
+          echo "::add-mask::$GH_TOKEN"; export GH_TOKEN
+          if [ "$EVENT" = issues ]; then
+            n=$(gh pr list --state open --json number,headRefName,isDraft --jq ".[] | select(.isDraft | not) | select(.headRefName | startswith(\"claude/issue-$ISSUE-\")) | .number" | head -1)
+          else
+            n=$PR
+            if [ "$(gh pr view "$n" --json headRefOid --jq .headRefOid)" = "$BEFORE" ]; then n=; fi
+          fi
+          if [ -n "$n" ]; then gh pr comment "$n" --body '@codex review'; echo "requested Codex review on #$n"; else echo "no PR to review"; fi

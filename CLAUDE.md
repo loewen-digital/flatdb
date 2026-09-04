@@ -36,7 +36,7 @@ Claude runs unattended via `.github/workflows/agent.yml`. Nobody answers questio
 
 1. Read reviews and inline comments since the last commit (`gh pr view <n> --json reviews,comments`, `gh api repos/{owner}/{repo}/pulls/<n>/comments`). Nothing to do: stop, no comment.
 2. Fix every point or explain in the thread why not. Never dismiss a security finding.
-3. Validation green, push, then one PR comment: `Review findings addressed in <short sha>, ready for re-review.` After three fix rounds on one PR: `needs-human`, stop.
+3. Validation green, push, then one PR comment: `Review findings addressed in <short sha>.` The workflow requests the re-review. After three fix rounds on one PR: `needs-human`, stop.
 
 **Always:**
 
