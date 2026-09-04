@@ -27,10 +27,10 @@ Claude runs unattended via `.github/workflows/agent.yml`. Nobody answers questio
 
 1. Read the issue: `gh issue view <n> --json title,body,labels,comments`. If acceptance criteria are missing: comment the concrete question, add label `needs-human`, remove `ready`, stop.
 2. Branch `claude/issue-<n>-<slug>` from the default branch.
-3. Implement following the rules above. If something is missing in one of our own libraries (fullstack, flatdb, sveltekit-ai-orchestrator, element-js, element-js-ssr-renderer, element-library): open an issue there (`gh issue create --repo <owner/lib>`), add the smallest workaround marked `// UPSTREAM: <issue-url>`, keep going. Never wait for upstream.
+3. Implement following the rules above. Acceptance criteria are binding; a solution proposed in the issue is not. Build what fits this project and its conventions, even where that differs from the proposal, and explain every difference in the PR under "Deviations from the issue". If the need does not belong in this project: comment why, label `needs-human`, remove `ready`, stop. If something is missing in one of our own libraries (fullstack, flatdb, sveltekit-ai-orchestrator, element-js, element-js-ssr-renderer, element-library): open an issue there (`gh issue create --repo <owner/lib>`) that states the need and the context here, with at most a non-binding proposal; add the smallest workaround marked `// UPSTREAM: <issue-url>`, keep going. Never wait for upstream.
 4. `npm test && npm run build` must pass. After three failed attempts: open a draft PR, label `needs-human`, stop.
 5. Review your own diff: security, dead code, error handling, accessibility.
-6. Open the PR (`gh pr create`): summary, `Closes #<n>`, test plan, and say explicitly whether auth, payments, schema, or secrets are touched. Do not post `@codex review`: Codex ignores comments from bots. Eddy requests the review.
+6. Open the PR (`gh pr create`): summary, `Closes #<n>`, test plan, a "Deviations from the issue" section (or "none"), and say explicitly whether auth, payments, schema, or secrets are touched. Do not post `@codex review`: Codex ignores comments from bots. Eddy requests the review.
 
 **Review** (a review on a `claude/*` PR):
 
