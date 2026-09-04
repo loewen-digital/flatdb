@@ -66,10 +66,13 @@ export class R2Adapter implements StorageAdapter {
 
   async exists(path: string): Promise<boolean> {
     const key = this.resolve(path)
-    if (this.bucket.head) {
-      return (await this.bucket.head(key)) != null
-    }
-    return (await this.bucket.get(key)) != null
+    const exact = this.bucket.head ? await this.bucket.head(key) : await this.bucket.get(key)
+    if (exact != null) return true
+
+    // Not an exact key — check whether it exists as an implicit directory
+    const dirPrefix = key.endsWith('/') ? key : `${key}/`
+    const result = await this.bucket.list({ prefix: dirPrefix, limit: 1 })
+    return result.objects.length > 0
   }
 
   async list(dir: string): Promise<string[]> {

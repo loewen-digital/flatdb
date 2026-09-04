@@ -95,6 +95,13 @@ describe('R2Adapter', () => {
     expect(noHeadBucket.getCalls).toBeGreaterThan(0)
   })
 
+  it('exists is true for an implicit directory prefix', async () => {
+    expect(await adapter.exists('dir')).toBe(false)
+    await adapter.write('dir/file.json', '{}')
+    expect(await adapter.exists('dir')).toBe(true)
+    expect(await adapter.exists('dir/')).toBe(true)
+  })
+
   it('mkdir is a no-op', async () => {
     await expect(adapter.mkdir('x/y/z')).resolves.toBeUndefined()
   })

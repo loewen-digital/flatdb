@@ -217,6 +217,8 @@ export function getDb(platform: App.Platform) {
 
 `R2Adapter` accepts any binding matching the structural `R2BucketLike` interface (`get`, `put`, `delete`, `list`, optional `head`) — no dependency on `@cloudflare/workers-types` required. `watch` is not supported on R2.
 
+**Concurrency:** `Collection` reads, mutates, and rewrites `_index.json` as a whole with no conditional/locked write. This is safe for a single Worker instance handling requests sequentially, but if a collection is written to concurrently from multiple Worker isolates, the last `_index.json` write wins and can silently drop another isolate's changes. Route writes to a collection through a single Durable Object (or another external serialization point) if you need multi-isolate write safety.
+
 ## Framework Adapters
 
 ```ts
