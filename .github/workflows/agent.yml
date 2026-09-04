@@ -45,9 +45,18 @@ jobs:
           cache: npm
       - if: hashFiles('package-lock.json') != ''
         run: npm ci
+      # The secret may carry a trailing newline from an interactive paste; the API rejects that.
+      - name: Trim OAuth token
+        id: tok
+        env:
+          T: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          t=$(printf '%s' "$T" | tr -d '[:space:]')
+          echo "::add-mask::$t"
+          echo "token=$t" >> "$GITHUB_OUTPUT"
       - uses: anthropics/claude-code-action@v1
         with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_code_oauth_token: ${{ steps.tok.outputs.token }}
           allowed_bots: "chatgpt-codex-connector[bot],chatgpt-codex-connector"
           additional_permissions: |
             actions: read
