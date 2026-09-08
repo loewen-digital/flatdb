@@ -6,13 +6,14 @@ import { extractRefMeta, serializeRefs, deserializeRefs, populateDoc, type RefMe
 import { EventEmitter } from './emitter.js'
 import { liveQuery, watchQuery, type LiveErrorHandler } from './live.js'
 import { deepMerge } from './merge.js'
+import { IndexStore } from './index-store.js'
 
 const INDEX_FILE = '_index.json'
 
 export class Collection<T extends Record<string, any> = Record<string, any>> {
   private schema?: ZodType
   private options: CollectionOptions
-  private indexCache: Record<string, T> | null = null
+  private index: IndexStore<T>
   private refMetas: RefMeta[]
   private emitter = new EventEmitter()
 
@@ -28,6 +29,7 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
     this.schema = schema
     this.options = { mode: 'auto', unknownFields: 'strip', validateOnRead: true, ...options }
     this.refMetas = schema ? extractRefMeta(schema) : []
+    this.index = new IndexStore<T>(adapter, `${name}/${INDEX_FILE}`)
   }
 
   private notify(): void {
@@ -37,29 +39,13 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
 
   // --- Index management ---
 
-  private indexPath(): string {
-    return `${this.name}/${INDEX_FILE}`
-  }
-
-  private async loadIndex(): Promise<Record<string, T>> {
-    if (this.indexCache) return this.indexCache
-    const raw = await this.adapter.read(this.indexPath())
-    this.indexCache = raw ? JSON.parse(raw) : {}
-    return this.indexCache!
-  }
-
-  private async saveIndex(index: Record<string, T>): Promise<void> {
-    this.indexCache = index
-    await this.adapter.write(this.indexPath(), JSON.stringify(index, null, 2))
-  }
-
-  /** @internal */
+  /** @internal Forget the cached index; the next access reads it again. */
   invalidateCache(): void {
-    this.indexCache = null
+    this.index.invalidate()
   }
 
   async rebuildIndex(): Promise<void> {
-    this.indexCache = null
+    this.index.invalidate()
     const entries = await this.adapter.list(this.name)
     const index: Record<string, T> = {}
     for (const entry of entries) {
@@ -70,7 +56,7 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
         index[id] = JSON.parse(raw)
       }
     }
-    await this.saveIndex(index)
+    await this.index.replace(index)
   }
 
   // --- Validation ---
@@ -131,9 +117,8 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
     const id = nanoid(8)
     await this.writeDoc(id, validated)
 
-    const index = await this.loadIndex()
-    index[id] = this.serializeDoc(validated) as T
-    await this.saveIndex(index)
+    const stored = this.serializeDoc(validated) as T
+    await this.index.commit(index => { index[id] = stored })
     this.notify()
 
     return { _id: id, ...validated }
@@ -141,23 +126,23 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
 
   async insertMany(docs: Record<string, any>[]): Promise<(T & { _id: string })[]> {
     const results: (T & { _id: string })[] = []
-    const index = await this.loadIndex()
+    const stored: Record<string, T> = {}
 
     for (const doc of docs) {
       const validated = this.validateWrite(doc)
       const id = nanoid(8)
       await this.writeDoc(id, validated)
-      index[id] = this.serializeDoc(validated) as T
+      stored[id] = this.serializeDoc(validated) as T
       results.push({ _id: id, ...validated })
     }
 
-    await this.saveIndex(index)
+    await this.index.commit(index => Object.assign(index, stored))
     this.notify()
     return results
   }
 
   async findById(id: string, options?: QueryOptions): Promise<(T & { _id: string }) | null> {
-    const index = await this.loadIndex()
+    const index = await this.index.load()
     const entry = index[id]
     if (!entry) return null
     if (options?.populate && this._resolveRef) {
@@ -172,7 +157,7 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
   }
 
   async findOne(filter: QueryFilter = {}): Promise<(T & { _id: string }) | null> {
-    const index = await this.loadIndex()
+    const index = await this.index.load()
     for (const [id, rawDoc] of Object.entries(index)) {
       const doc = this.readEntry(rawDoc)
       const withId = { _id: id, ...doc }
@@ -185,7 +170,7 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
   }
 
   async find(filter: QueryFilter = {}, options: QueryOptions = {}): Promise<(T & { _id: string })[]> {
-    const index = await this.loadIndex()
+    const index = await this.index.load()
     let results: (T & { _id: string })[] = []
 
     for (const [id, rawDoc] of Object.entries(index)) {
@@ -201,7 +186,7 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
   }
 
   async count(filter: QueryFilter = {}): Promise<number> {
-    const index = await this.loadIndex()
+    const index = await this.index.load()
     let count = 0
     for (const [id, rawDoc] of Object.entries(index)) {
       const doc = this.readEntry(rawDoc)
@@ -212,8 +197,8 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
   }
 
   async update(filter: QueryFilter, changes: Record<string, any>): Promise<number> {
-    const index = await this.loadIndex()
-    let updated = 0
+    const index = await this.index.load()
+    const stored: Record<string, T> = {}
 
     const mergeData = changes.$set ?? changes
 
@@ -224,37 +209,36 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
         const merged = deepMerge({ ...doc }, mergeData)
         const validated = this.validateWrite(merged)
         await this.writeDoc(id, validated)
-        index[id] = this.serializeDoc(validated) as T
-        updated++
+        stored[id] = this.serializeDoc(validated) as T
       }
     }
 
+    const updated = Object.keys(stored).length
     if (updated > 0) {
-      await this.saveIndex(index)
+      await this.index.commit(current => Object.assign(current, stored))
       this.notify()
     }
     return updated
   }
 
   async delete(filter: QueryFilter): Promise<number> {
-    const index = await this.loadIndex()
-    let deleted = 0
+    const index = await this.index.load()
+    const removed: string[] = []
 
     for (const [id, rawDoc] of Object.entries(index)) {
       const doc = this.readEntry(rawDoc)
       const withId = { _id: id, ...doc }
       if (matchesFilter(withId, filter)) {
         await this.adapter.delete(this.docPath(id))
-        delete index[id]
-        deleted++
+        removed.push(id)
       }
     }
 
-    if (deleted > 0) {
-      await this.saveIndex(index)
+    if (removed.length > 0) {
+      await this.index.commit(current => { for (const id of removed) delete current[id] })
       this.notify()
     }
-    return deleted
+    return removed.length
   }
 
   async deleteMany(filter: QueryFilter): Promise<number> {

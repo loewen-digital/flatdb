@@ -9,7 +9,7 @@ const tick = () => new Promise(r => setTimeout(r, 20))
 /** Replaces the index so the next read fails schema validation (or succeeds again). */
 async function setIndex(adapter: MemoryAdapter, col: object, name: string, index: object) {
   await adapter.write(`${name}/_index.json`, JSON.stringify(index))
-  ;(col as any).indexCache = null
+  ;(col as any).invalidateCache()
 }
 
 /** What flatdb()'s watch wiring does after an external change. */

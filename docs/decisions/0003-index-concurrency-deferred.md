@@ -1,5 +1,7 @@
 # 0003 · Concurrent `_index.json` writes stay unserialized for now
 
+Status: superseded by [0008](0008-index-compare-and-swap.md).
+
 ## Context
 
 Codex flagged on PR #2 that two overlapping writers lose an `_index.json` update because `Collection`

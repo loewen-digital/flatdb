@@ -1,4 +1,4 @@
-import type { StorageAdapter } from './types.js'
+import type { StorageAdapter, VersionedRead } from './types.js'
 
 const STORE_NAME = 'files'
 
@@ -117,6 +117,32 @@ export class IndexedDBAdapter implements StorageAdapter {
       const request = store.getAllKeys()
       request.onsuccess = () => resolve(request.result as string[])
       request.onerror = () => reject(request.error)
+    })
+  }
+
+  async readVersioned(path: string): Promise<VersionedRead> {
+    const data = await this.read(path)
+    // The content is its own version: writeIf compares it inside one transaction
+    return { data, version: data }
+  }
+
+  async writeIf(path: string, data: string, version: string | null): Promise<string | null> {
+    const db = await this.getDb()
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readwrite')
+      const store = transaction.objectStore(STORE_NAME)
+      let written: string | null = null
+
+      const current = store.get(path)
+      current.onsuccess = () => {
+        if (((current.result as string | undefined) ?? null) !== version) return
+        store.put(data, path)
+        written = data
+      }
+
+      transaction.oncomplete = () => resolve(written)
+      transaction.onerror = () => reject(transaction.error)
+      transaction.onabort = () => reject(transaction.error)
     })
   }
 

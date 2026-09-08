@@ -83,6 +83,33 @@ describe('MemoryAdapter', () => {
     expect(await adapter.read('newdir/sub/b.json')).toBe('{"b":2}')
   })
 
+  describe('versioned writes', () => {
+    it('readVersioned reports null for a missing path and a token afterwards', async () => {
+      expect(await adapter.readVersioned('x.json')).toEqual({ data: null, version: null })
+      await adapter.write('x.json', '1')
+      const { data, version } = await adapter.readVersioned('x.json')
+      expect(data).toBe('1')
+      expect(version).not.toBeNull()
+    })
+
+    it('writeIf creates only when the path is absent', async () => {
+      expect(await adapter.writeIf('x.json', '1', null)).not.toBeNull()
+      expect(await adapter.writeIf('x.json', '2', null)).toBeNull()
+      expect(await adapter.read('x.json')).toBe('1')
+    })
+
+    it('writeIf succeeds with the current version and fails after any other write', async () => {
+      const v1 = await adapter.writeIf('x.json', '1', null)
+      const v2 = await adapter.writeIf('x.json', '2', v1)
+      expect(v2).not.toBeNull()
+      expect(v2).not.toBe(v1)
+      expect(await adapter.writeIf('x.json', '3', v1)).toBeNull()
+      await adapter.write('x.json', '4')
+      expect(await adapter.writeIf('x.json', '5', v2)).toBeNull()
+      expect(await adapter.read('x.json')).toBe('4')
+    })
+  })
+
   it('clear wipes all data', async () => {
     await adapter.write('a.json', '{}')
     await adapter.write('b.json', '{}')

@@ -4,6 +4,7 @@ import { matchesFilter, applyOptions } from './query.js'
 import { EventEmitter } from './emitter.js'
 import { liveQuery, watchQuery, type LiveErrorHandler } from './live.js'
 import { deepMerge } from './merge.js'
+import { IndexStore } from './index-store.js'
 
 const INDEX_FILE = '_index.json'
 
@@ -16,7 +17,7 @@ export interface TreeNode {
 export class PathCollection<T extends Record<string, any> = Record<string, any>> {
   private schema?: ZodType
   private options: CollectionOptions
-  private indexCache: Record<string, T> | null = null
+  private index: IndexStore<T>
   private emitter = new EventEmitter()
 
   constructor(
@@ -27,30 +28,20 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
   ) {
     this.schema = schema
     this.options = { mode: 'path', unknownFields: 'strip', validateOnRead: true, ...options }
+    this.index = new IndexStore<T>(adapter, `${name}/${INDEX_FILE}`)
   }
 
   // --- Index management ---
 
-  private indexPath(): string {
-    return `${this.name}/${INDEX_FILE}`
-  }
-
-  private async loadIndex(): Promise<Record<string, T>> {
-    if (this.indexCache) return this.indexCache
-    const raw = await this.adapter.read(this.indexPath())
-    this.indexCache = raw ? JSON.parse(raw) : {}
-    return this.indexCache!
-  }
-
-  private async saveIndex(index: Record<string, T>): Promise<void> {
-    this.indexCache = index
-    await this.adapter.write(this.indexPath(), JSON.stringify(index, null, 2))
+  /** @internal Forget the cached index; the next access reads it again. */
+  invalidateCache(): void {
+    this.index.invalidate()
   }
 
   async rebuildIndex(): Promise<void> {
     const index: Record<string, T> = {}
     await this.scanDir('', index)
-    await this.saveIndex(index)
+    await this.index.replace(index)
   }
 
   private async scanDir(dir: string, index: Record<string, T>): Promise<void> {
@@ -127,16 +118,14 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
     const filePath = this.docFilePath(path)
     await this.adapter.write(filePath, JSON.stringify(validated, null, 2))
 
-    const index = await this.loadIndex()
-    index[path] = validated
-    await this.saveIndex(index)
+    await this.index.commit(index => { index[path] = validated })
     this.notify()
 
     return validated
   }
 
   async get(path: string, options?: QueryOptions): Promise<T | null> {
-    const index = await this.loadIndex()
+    const index = await this.index.load()
     const entry = index[path]
     if (!entry) return null
     let validated = this.validateRead(this.readEntry(entry))
@@ -147,7 +136,7 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
   }
 
   async find(filter: QueryFilter = {}, options: QueryOptions = {}): Promise<T[]> {
-    const index = await this.loadIndex()
+    const index = await this.index.load()
     let results: T[] = []
     const pathPattern = filter.$path as string | undefined
 
@@ -168,7 +157,7 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
   }
 
   async count(filter: QueryFilter = {}): Promise<number> {
-    const index = await this.loadIndex()
+    const index = await this.index.load()
     let count = 0
     const pathPattern = filter.$path as string | undefined
 
@@ -180,7 +169,7 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
   }
 
   async update(path: string, changes: Record<string, any>): Promise<T> {
-    const index = await this.loadIndex()
+    const index = await this.index.load()
     const existing = index[path]
     if (!existing) throw new Error(`Document not found: ${path}`)
 
@@ -192,39 +181,23 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
     const filePath = isNode ? this.docIndexFilePath(path) : this.docFilePath(path)
     await this.adapter.write(filePath, JSON.stringify(validated, null, 2))
 
-    index[path] = validated
-    await this.saveIndex(index)
+    await this.index.commit(current => { current[path] = validated })
     this.notify()
 
     return validated
   }
 
   async delete(path: string, options?: { recursive?: boolean }): Promise<void> {
-    const index = await this.loadIndex()
+    const index = await this.index.load()
+    const removed = options?.recursive
+      ? Object.keys(index).filter(p => p === path || p.startsWith(path + '/'))
+      : [path]
 
-    if (options?.recursive) {
-      // Delete this path and all children
-      const toDelete = Object.keys(index).filter(
-        p => p === path || p.startsWith(path + '/'),
-      )
-      for (const p of toDelete) {
-        await this.deleteDocFile(p)
-        delete index[p]
-      }
-      // Also try to remove the directory
-      try {
-        const dirPath = `${this.name}/${path}`
-        const entries = await this.adapter.list(dirPath)
-        if (entries.length === 0 || entries.every(e => e === INDEX_FILE)) {
-          // Clean up empty dir (best effort)
-        }
-      } catch { /* ignore */ }
-    } else {
-      await this.deleteDocFile(path)
-      delete index[path]
+    for (const p of removed) {
+      await this.deleteDocFile(p)
     }
 
-    await this.saveIndex(index)
+    await this.index.commit(current => { for (const p of removed) delete current[p] })
     this.notify()
   }
 
@@ -239,32 +212,28 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
   }
 
   async move(from: string, to: string): Promise<void> {
-    const index = await this.loadIndex()
-    const doc = index[from]
-    if (!doc) throw new Error(`Document not found: ${from}`)
+    const index = await this.index.load()
+    if (!index[from]) throw new Error(`Document not found: ${from}`)
 
-    // Check if it's stored as a node (folder/index.json)
+    // A node (folder/index.json) moves together with everything below it
     const isNode = await this.adapter.exists(this.docIndexFilePath(from))
+    const moved = isNode
+      ? Object.keys(index).filter(p => p === from || p.startsWith(from + '/'))
+      : [from]
+    const renamed = moved.map(p => [p, p === from ? to : to + p.slice(from.length), index[p]] as const)
 
     if (isNode) {
-      // Move the entire directory
       await this.adapter.move(`${this.name}/${from}`, `${this.name}/${to}`)
-      // Update all paths in the index that start with `from`
-      const toUpdate = Object.keys(index).filter(
-        p => p === from || p.startsWith(from + '/'),
-      )
-      for (const p of toUpdate) {
-        const newPath = p === from ? to : to + p.slice(from.length)
-        index[newPath] = index[p]
-        delete index[p]
-      }
     } else {
       await this.adapter.move(this.docFilePath(from), this.docFilePath(to))
-      index[to] = doc
-      delete index[from]
     }
 
-    await this.saveIndex(index)
+    await this.index.commit(current => {
+      for (const [oldPath, newPath, doc] of renamed) {
+        delete current[oldPath]
+        current[newPath] = doc
+      }
+    })
     this.notify()
   }
 
@@ -301,7 +270,7 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
   }
 
   async tree(rootPath?: string): Promise<TreeNode> {
-    const index = await this.loadIndex()
+    const index = await this.index.load()
     const root = rootPath ?? ''
 
     const buildNode = (nodePath: string): TreeNode => {

@@ -1,10 +1,13 @@
-import type { R2BucketLike, R2ListOptionsLike, R2ListResultLike } from '../src/r2-adapter.js'
+import { createHash } from 'node:crypto'
+import type { R2BucketLike, R2ListOptionsLike, R2ListResultLike, R2PutOptionsLike } from '../src/r2-adapter.js'
 
 /**
- * In-memory stand-in for an R2 bucket binding with R2's listing semantics:
- * keys come back sorted, `delimiter` folds nested keys into `delimitedPrefixes`,
- * and results are paged through `cursor`/`truncated`. `pageSize` caps a page so
- * tests can force pagination. `calls` records every binding call.
+ * In-memory stand-in for an R2 bucket binding with R2's semantics as observed in
+ * miniflare: keys come back sorted, `delimiter` folds nested keys into
+ * `delimitedPrefixes`, results page through `cursor`/`truncated`, etags are the
+ * MD5 of the content, and `put` honours `onlyIf` (a failed condition returns
+ * null, a quoted etag throws). `pageSize` caps a page so tests can force
+ * pagination. `calls` records every binding call.
  */
 export class FakeR2Bucket implements R2BucketLike {
   readonly objects = new Map<string, string>()
@@ -12,21 +15,36 @@ export class FakeR2Bucket implements R2BucketLike {
 
   constructor(private pageSize = 1000) {}
 
-  async head(key: string): Promise<object | null> {
-    this.calls.push(`head ${key}`)
-    return this.objects.has(key) ? { key } : null
+  private etagOf(key: string): string | null {
+    const value = this.objects.get(key)
+    return value === undefined ? null : etag(value)
   }
 
-  async get(key: string): Promise<{ text(): Promise<string> } | null> {
+  async head(key: string): Promise<{ etag: string } | null> {
+    this.calls.push(`head ${key}`)
+    const tag = this.etagOf(key)
+    return tag === null ? null : { etag: tag }
+  }
+
+  async get(key: string): Promise<{ etag: string; text(): Promise<string> } | null> {
     this.calls.push(`get ${key}`)
     const value = this.objects.get(key)
-    return value === undefined ? null : { text: async () => value }
+    return value === undefined ? null : { etag: etag(value), text: async () => value }
   }
 
-  async put(key: string, value: string): Promise<unknown> {
-    this.calls.push(`put ${key}`)
+  async put(key: string, value: string, options?: R2PutOptionsLike): Promise<{ etag: string } | null> {
+    const onlyIf = options?.onlyIf
+    this.calls.push(`put ${key}${onlyIf ? ' onlyIf' : ''}`)
+    if (onlyIf) {
+      for (const tag of [onlyIf.etagMatches, onlyIf.etagDoesNotMatch]) {
+        if (tag?.startsWith('"')) throw new TypeError(`Conditional ETag should not be wrapped in quotes (${tag}).`)
+      }
+      const current = this.etagOf(key)
+      if (onlyIf.etagMatches !== undefined && current !== onlyIf.etagMatches) return null
+      if (onlyIf.etagDoesNotMatch === '*' ? current !== null : onlyIf.etagDoesNotMatch !== undefined && current === onlyIf.etagDoesNotMatch) return null
+    }
     this.objects.set(key, value)
-    return { key }
+    return { etag: etag(value) }
   }
 
   async delete(key: string): Promise<void> {
@@ -63,4 +81,8 @@ export class FakeR2Bucket implements R2BucketLike {
       cursor: truncated ? String(end) : undefined,
     }
   }
+}
+
+function etag(value: string): string {
+  return createHash('md5').update(value).digest('hex')
 }

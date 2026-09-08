@@ -550,6 +550,9 @@ interface StorageAdapter {
   mkdir(dir: string): Promise<void>
   move(from: string, to: string): Promise<void>
   watch?(dir: string, cb: (event: WatchEvent) => void): () => void
+  close?(): Promise<void>
+  readVersioned?(path: string): Promise<{ data: string | null; version: string | null }>
+  writeIf?(path: string, data: string, version: string | null): Promise<string | null>
 }
 ```
 
@@ -559,6 +562,7 @@ Every runtime implements this interface. The entire core (Collections, Queries, 
 
 - **Reactivity** (live queries, `live()`, `watch()`, framework adapters) runs via an internal EventEmitter in the core. Every mutation through the API automatically triggers subscribers. Works **on all runtimes** — no adapter support needed.
 - **External Watch** (`watch` in the StorageAdapter) detects changes that happen **outside the API** (e.g. an agent edits JSON files directly). Only relevant and useful on filesystem runtimes. On Browser/Edge/Memory there is no external access → not applicable.
+- **Conditional writes** (`readVersioned`/`writeIf`) let the core write `_index.json` as a compare-and-swap, so concurrent writers keep each other's entries. R2 (etag), IndexedDB (one transaction) and Memory implement it; FsAdapter does not, there the last writer wins. `close` releases connections (IndexedDB) and is called by `db.close()`.
 
 -----
 

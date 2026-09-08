@@ -1,4 +1,4 @@
-import type { StorageAdapter } from './types.js'
+import type { StorageAdapter, VersionedRead } from './types.js'
 
 /**
  * The slice of a Cloudflare R2 bucket binding that R2Adapter uses.
@@ -7,11 +7,16 @@ import type { StorageAdapter } from './types.js'
  * satisfies it without this package depending on those types.
  */
 export interface R2BucketLike {
-  head(key: string): Promise<object | null>
-  get(key: string): Promise<{ text(): Promise<string> } | null>
-  put(key: string, value: string): Promise<unknown>
+  head(key: string): Promise<{ etag: string } | null>
+  get(key: string): Promise<{ etag: string; text(): Promise<string> } | null>
+  put(key: string, value: string, options?: R2PutOptionsLike): Promise<{ etag: string } | null>
   delete(key: string): Promise<void>
   list(options?: R2ListOptionsLike): Promise<R2ListResultLike>
+}
+
+export interface R2PutOptionsLike {
+  /** Etags unquoted, as `head`/`get` return them. `etagDoesNotMatch: '*'` means "only if absent". */
+  onlyIf?: { etagMatches?: string; etagDoesNotMatch?: string }
 }
 
 export interface R2ListOptionsLike {
@@ -43,7 +48,10 @@ export interface R2AdapterOptions {
  * delimiter instead of scanning the whole subtree, and `move` copies then deletes
  * because R2 has no rename.
  *
- * R2 bindings offer no change notifications, so `watch` is not provided.
+ * `_index.json` is written with a compare-and-swap on the object's etag
+ * (`readVersioned`/`writeIf`), so concurrent Workers do not overwrite each
+ * other's index entries. R2 bindings offer no change notifications, so
+ * `watch` is not provided.
  */
 export class R2Adapter implements StorageAdapter {
   private bucket: R2BucketLike
@@ -113,6 +121,19 @@ export class R2Adapter implements StorageAdapter {
 
   async mkdir(_dir: string): Promise<void> {
     // No-op: directories are implicit in key prefixes
+  }
+
+  async readVersioned(path: string): Promise<VersionedRead> {
+    const object = await this.bucket.get(this.key(path))
+    if (!object) return { data: null, version: null }
+    return { data: await object.text(), version: object.etag }
+  }
+
+  /** Compare-and-swap on the etag; a `null` version means "create only if absent". */
+  async writeIf(path: string, data: string, version: string | null): Promise<string | null> {
+    const onlyIf = version === null ? { etagDoesNotMatch: '*' } : { etagMatches: version }
+    const written = await this.bucket.put(this.key(path), data, { onlyIf })
+    return written ? written.etag : null
   }
 
   async move(from: string, to: string): Promise<void> {

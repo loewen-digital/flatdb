@@ -1,14 +1,26 @@
-import type { StorageAdapter } from './types.js'
+import type { StorageAdapter, VersionedRead } from './types.js'
 
 export class MemoryAdapter implements StorageAdapter {
   private store = new Map<string, string>()
+  private versions = new Map<string, number>()
+
+  private set(path: string, data: string): string {
+    const version = (this.versions.get(path) ?? 0) + 1
+    this.store.set(path, data)
+    this.versions.set(path, version)
+    return String(version)
+  }
+
+  private versionOf(path: string): string | null {
+    return this.store.has(path) ? String(this.versions.get(path)) : null
+  }
 
   async read(path: string): Promise<string | null> {
     return this.store.get(path) ?? null
   }
 
   async write(path: string, data: string): Promise<void> {
-    this.store.set(path, data)
+    this.set(path, data)
   }
 
   async delete(path: string): Promise<void> {
@@ -48,7 +60,7 @@ export class MemoryAdapter implements StorageAdapter {
     // Move exact key
     const value = this.store.get(from)
     if (value !== undefined) {
-      this.store.set(to, value)
+      this.set(to, value)
       this.store.delete(from)
     }
 
@@ -62,12 +74,22 @@ export class MemoryAdapter implements StorageAdapter {
       }
     }
     for (const [oldKey, newKey] of toMove) {
-      this.store.set(newKey, this.store.get(oldKey)!)
+      this.set(newKey, this.store.get(oldKey)!)
       this.store.delete(oldKey)
     }
   }
 
+  async readVersioned(path: string): Promise<VersionedRead> {
+    return { data: this.store.get(path) ?? null, version: this.versionOf(path) }
+  }
+
+  async writeIf(path: string, data: string, version: string | null): Promise<string | null> {
+    if (this.versionOf(path) !== version) return null
+    return this.set(path, data)
+  }
+
   clear(): void {
+    // Versions are kept so a reader holding an old token still conflicts after a clear
     this.store.clear()
   }
 }

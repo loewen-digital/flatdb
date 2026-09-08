@@ -79,9 +79,9 @@ export function flatdb<T extends Record<string, CollectionDefinition>>(
         // The directory has to exist before it can be watched
         const watcher = adapter.mkdir(name).then(() =>
           adapter.watch!(name, () => {
-            // Invalidate index cache and re-notify subscribers
-            ;(col as any).indexCache = null
-            ;(col as any).emitter?.emit()
+            // Drop the cached index and re-notify subscribers
+            col.invalidateCache()
+            ;(col as any).emitter.emit()
           }),
         )
         watcher.catch(error => console.error(`[flatdb] could not watch "${name}"`, error))

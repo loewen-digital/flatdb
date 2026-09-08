@@ -7,6 +7,7 @@ is the topmost released one here.
 
 ## Unreleased
 
+- Concurrent writers no longer lose `_index.json` entries: the index is written as a compare-and-swap through new optional `readVersioned`/`writeIf` hooks on `StorageAdapter`, implemented for R2 (etag), IndexedDB (one transaction) and Memory; a writer that lost the race reloads, re-applies its change and retries. `FsAdapter` is unchanged. Decision: [0008](docs/decisions/0008-index-compare-and-swap.md). (#3)
 - `migrate` now runs on every read, before filters are matched and regardless of schema or `validateOnRead`, so queries find old documents by their migrated fields; files still change on their next write. `deepMerge` is one shared function, and both are covered by tests. Decision: [0007](docs/decisions/0007-migrate-on-read.md). (#6)
 - `db.close()` stops the file watchers started by `{ watch: true }` and closes the adapter's connection (IndexedDB); `StorageAdapter` gained an optional `close()`. A collection named `close` is rejected. Decision: [0006](docs/decisions/0006-close-on-the-handle.md). (#4)
 - Live queries no longer crash the process: a failing re-query or a throwing callback in `live()`, `liveById()` and `liveByPath()` goes to an optional `onError` (default: logged) and the subscription stays alive; `watch()` ends with the error. The framework adapters take `onError` as third argument. Decision: [0005](docs/decisions/0005-live-query-errors.md). (#5)
