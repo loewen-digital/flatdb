@@ -7,6 +7,7 @@ is the topmost released one here.
 
 ## Unreleased
 
+- `migrate` now runs on every read, before filters are matched and regardless of schema or `validateOnRead`, so queries find old documents by their migrated fields; files still change on their next write. `deepMerge` is one shared function, and both are covered by tests. Decision: [0007](docs/decisions/0007-migrate-on-read.md). (#6)
 - `db.close()` stops the file watchers started by `{ watch: true }` and closes the adapter's connection (IndexedDB); `StorageAdapter` gained an optional `close()`. A collection named `close` is rejected. Decision: [0006](docs/decisions/0006-close-on-the-handle.md). (#4)
 - Live queries no longer crash the process: a failing re-query or a throwing callback in `live()`, `liveById()` and `liveByPath()` goes to an optional `onError` (default: logged) and the subscription stays alive; `watch()` ends with the error. The framework adapters take `onError` as third argument. Decision: [0005](docs/decisions/0005-live-query-errors.md). (#5)
 - Open work lives in GitHub issues only: the review findings from `tasks.md` are now #4 (close the database), #5 (errors in live queries) and #6 (shared deepMerge, migrate tests); the file is gone.

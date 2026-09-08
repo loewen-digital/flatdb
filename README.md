@@ -153,6 +153,8 @@ const Todo = collection(
 )
 ```
 
+`migrate` runs on every read, before the schema is checked and before filters are matched, so `find({ status: 'done' })` finds documents that still say `done: true` on disk. It works without a schema too. Files are not rewritten on read; a document gets its new shape on the next write.
+
 ## Reactivity
 
 ```ts

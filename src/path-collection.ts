@@ -3,6 +3,7 @@ import type { StorageAdapter, CollectionOptions, QueryFilter, QueryOptions } fro
 import { matchesFilter, applyOptions } from './query.js'
 import { EventEmitter } from './emitter.js'
 import { liveQuery, watchQuery, type LiveErrorHandler } from './live.js'
+import { deepMerge } from './merge.js'
 
 const INDEX_FILE = '_index.json'
 
@@ -83,9 +84,14 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
     return this.schema.parse(doc) as T
   }
 
+  /** Index entry → document as the application sees it, with migration applied. */
+  private readEntry(entry: Record<string, any>): Record<string, any> {
+    const doc = { ...entry }
+    return this.options.migrate ? this.options.migrate(doc) : doc
+  }
+
   private validateRead(doc: Record<string, any>): T {
     if (!this.schema || !this.options.validateOnRead) return doc as T
-    if (this.options.migrate) doc = this.options.migrate(doc)
     if (this.options.unknownFields === 'passthrough') {
       const result = this.schema.safeParse(doc)
       if (!result.success) throw result.error
@@ -133,7 +139,7 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
     const index = await this.loadIndex()
     const entry = index[path]
     if (!entry) return null
-    let validated = this.validateRead({ ...entry })
+    let validated = this.validateRead(this.readEntry(entry))
     if (options?.populate) {
       validated = await this.populateDoc(validated, options.populate)
     }
@@ -145,11 +151,11 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
     let results: T[] = []
     const pathPattern = filter.$path as string | undefined
 
-    for (const [docPath, doc] of Object.entries(index)) {
+    for (const [docPath, entry] of Object.entries(index)) {
       if (pathPattern && !matchPathPattern(docPath, pathPattern)) continue
+      const doc = this.readEntry(entry)
       if (matchesFilter(doc, filter)) {
-        const validated = this.validateRead({ ...doc })
-        results.push(validated)
+        results.push(this.validateRead(doc))
       }
     }
 
@@ -166,9 +172,9 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
     let count = 0
     const pathPattern = filter.$path as string | undefined
 
-    for (const [docPath, doc] of Object.entries(index)) {
+    for (const [docPath, entry] of Object.entries(index)) {
       if (pathPattern && !matchPathPattern(docPath, pathPattern)) continue
-      if (matchesFilter(doc, filter)) count++
+      if (matchesFilter(this.readEntry(entry), filter)) count++
     }
     return count
   }
@@ -178,7 +184,7 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
     const existing = index[path]
     if (!existing) throw new Error(`Document not found: ${path}`)
 
-    const merged = deepMerge({ ...existing }, changes)
+    const merged = deepMerge(this.readEntry(existing), changes)
     const validated = this.validateWrite(merged)
 
     // Write to wherever the doc actually lives (file or index.json)
@@ -299,7 +305,7 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
     const root = rootPath ?? ''
 
     const buildNode = (nodePath: string): TreeNode => {
-      const doc = index[nodePath] ? this.validateRead({ ...index[nodePath] }) : null
+      const doc = index[nodePath] ? this.validateRead(this.readEntry(index[nodePath])) : null
 
       // Find direct children
       const prefix = nodePath === '' ? '' : nodePath + '/'
@@ -400,17 +406,4 @@ function matchPathPattern(docPath: string, pattern: string): boolean {
     return !rest.includes('/') // no further nesting = direct child
   }
   return docPath === pattern
-}
-
-function deepMerge(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
-  for (const key of Object.keys(source)) {
-    const sv = source[key]
-    const tv = target[key]
-    if (sv && typeof sv === 'object' && !Array.isArray(sv) && tv && typeof tv === 'object' && !Array.isArray(tv)) {
-      target[key] = deepMerge({ ...tv }, sv)
-    } else {
-      target[key] = sv
-    }
-  }
-  return target
 }

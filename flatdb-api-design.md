@@ -420,7 +420,7 @@ const Todo = collection(
     status: z.enum(['todo', 'doing', 'done']).default('todo'),
   }),
   {
-    // Lazy migration: applied on read + written back
+    // Lazy migration: applied on every read, before filters; files change on their next write
     migrate: (doc) => ({
       ...doc,
       status: doc.done ? 'done' : 'todo',

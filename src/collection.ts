@@ -5,6 +5,7 @@ import { matchesFilter, applyOptions } from './query.js'
 import { extractRefMeta, serializeRefs, deserializeRefs, populateDoc, type RefMeta, type RefResolver } from './ref.js'
 import { EventEmitter } from './emitter.js'
 import { liveQuery, watchQuery, type LiveErrorHandler } from './live.js'
+import { deepMerge } from './merge.js'
 
 const INDEX_FILE = '_index.json'
 
@@ -81,11 +82,6 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
 
   private validateRead(doc: Record<string, any>): T {
     if (!this.schema || !this.options.validateOnRead) return doc as T
-
-    if (this.options.migrate) {
-      doc = this.options.migrate(doc)
-    }
-
     if (this.options.unknownFields === 'error') {
       return this.schema.parse(doc) as T
     }
@@ -106,6 +102,15 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
 
   private deserializeDoc(doc: Record<string, any>): Record<string, any> {
     return deserializeRefs(doc)
+  }
+
+  private migrate(doc: Record<string, any>): Record<string, any> {
+    return this.options.migrate ? this.options.migrate(doc) : doc
+  }
+
+  /** Index entry → document as the application sees it: refs deserialized, migration applied. */
+  private readEntry(entry: Record<string, any>): Record<string, any> {
+    return this.migrate(this.deserializeDoc({ ...entry }))
   }
 
   // --- File helpers ---
@@ -155,23 +160,21 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
     const index = await this.loadIndex()
     const entry = index[id]
     if (!entry) return null
-    let doc = this.deserializeDoc({ ...entry })
-    const validated = this.validateRead(doc)
-    let result = { _id: id, ...validated }
     if (options?.populate && this._resolveRef) {
-      result = await populateDoc(
-        { _id: id, ...this.validateRead({ ...entry }) },
+      // populate needs the stored "ref:" strings, so it works on the serialized entry
+      return await populateDoc(
+        { _id: id, ...this.validateRead(this.migrate({ ...entry })) },
         options.populate,
         this._resolveRef,
       ) as T & { _id: string }
     }
-    return result
+    return { _id: id, ...this.validateRead(this.readEntry(entry)) }
   }
 
   async findOne(filter: QueryFilter = {}): Promise<(T & { _id: string }) | null> {
     const index = await this.loadIndex()
     for (const [id, rawDoc] of Object.entries(index)) {
-      const doc = this.deserializeDoc({ ...rawDoc })
+      const doc = this.readEntry(rawDoc)
       const withId = { _id: id, ...doc }
       if (matchesFilter(withId, filter)) {
         const validated = this.validateRead(doc)
@@ -186,7 +189,7 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
     let results: (T & { _id: string })[] = []
 
     for (const [id, rawDoc] of Object.entries(index)) {
-      const doc = this.deserializeDoc({ ...rawDoc })
+      const doc = this.readEntry(rawDoc)
       const withId = { _id: id, ...doc }
       if (matchesFilter(withId, filter)) {
         const validated = this.validateRead(doc)
@@ -201,7 +204,7 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
     const index = await this.loadIndex()
     let count = 0
     for (const [id, rawDoc] of Object.entries(index)) {
-      const doc = this.deserializeDoc({ ...rawDoc })
+      const doc = this.readEntry(rawDoc)
       const withId = { _id: id, ...doc }
       if (matchesFilter(withId, filter)) count++
     }
@@ -215,7 +218,7 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
     const mergeData = changes.$set ?? changes
 
     for (const [id, rawDoc] of Object.entries(index)) {
-      const doc = this.deserializeDoc({ ...rawDoc })
+      const doc = this.readEntry(rawDoc)
       const withId = { _id: id, ...doc }
       if (matchesFilter(withId, filter)) {
         const merged = deepMerge({ ...doc }, mergeData)
@@ -238,7 +241,7 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
     let deleted = 0
 
     for (const [id, rawDoc] of Object.entries(index)) {
-      const doc = this.deserializeDoc({ ...rawDoc })
+      const doc = this.readEntry(rawDoc)
       const withId = { _id: id, ...doc }
       if (matchesFilter(withId, filter)) {
         await this.adapter.delete(this.docPath(id))
@@ -287,17 +290,4 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
     return watchQuery(this.emitter, () => this.find(filter))
   }
 
-}
-
-function deepMerge(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
-  for (const key of Object.keys(source)) {
-    const sv = source[key]
-    const tv = target[key]
-    if (sv && typeof sv === 'object' && !Array.isArray(sv) && tv && typeof tv === 'object' && !Array.isArray(tv)) {
-      target[key] = deepMerge({ ...tv }, sv)
-    } else {
-      target[key] = sv
-    }
-  }
-  return target
 }
