@@ -7,6 +7,7 @@ Read `CLAUDE.md` first. It holds every rule for this repository, including the a
 - Judge the PR against the linked issue's acceptance criteria and the rules in `CLAUDE.md`.
 - Acceptance criteria are binding, the issue's proposed solution is not. A PR that copies the proposal where a solution matching this project's conventions would fit better is a finding. Deviations must be explained under "Deviations from the issue".
 - Check the PR body against the diff: if `## Needs Eddy` omits a touched sensitive area, or a deviation from the issue is not listed, that is a finding.
+- A change a user or developer would notice without lines under `## Unreleased` in `CHANGELOG.md` is a finding. A deviation listed in the PR without a file under `docs/decisions/` is a finding.
 - Report security issues, correctness bugs, missing or tautological tests, and rule violations. Skip formatting and naming taste.
 - Say explicitly if the PR touches auth, payments, schema, or secrets.
 - Findings first, with file and line. No praise, no diff summary.

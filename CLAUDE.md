@@ -19,14 +19,17 @@ Flat-file document database for TypeScript/JavaScript.
 - _index.json per collection for fast queries
 - Reactivity via internal EventEmitter in Core
 
-## Agent Loop (GitHub Actions)
+## Agent Loop
 
-Claude runs unattended via `.github/workflows/agent.yml`. Nobody answers questions.
+Two ways to be here; check `GITHUB_ACTIONS`.
+
+- **Set:** you run unattended via `.github/workflows/agent.yml` as `claude[bot]`. Nobody answers questions. Follow **Issue** and **Review** below: branch, PR, never `main`.
+- **Not set:** you are in a local session with Eddy (Claude Code or Codex). Work on `main` and push after every green validation (the commands in step 4) while the version in `package.json` is below 1.0; a branch only when Eddy asks for one. **Always**, **Changelog** and **Writing for humans** apply to you as well.
 
 **Issue** (label `ready`):
 
 1. Read the issue: `gh issue view <n> --json title,body,labels,comments`. If acceptance criteria are missing: comment the concrete question, add label `needs-human`, remove `ready`, stop.
-2. Branch `claude/issue-<n>-<slug>` from the default branch.
+2. Branch `claude/issue-<n>-<slug>` from the default branch. One issue, one branch, one PR.
 3. Implement following the rules above. Acceptance criteria are binding; a solution proposed in the issue is not. Build what fits this project and its conventions, even where that differs from the proposal, and explain every difference in the PR under "Deviations from the issue". If the need does not belong in this project: comment why, label `needs-human`, remove `ready`, stop. If something is missing in one of our own libraries (fullstack, flatdb, sveltekit-ai-orchestrator, element-js, element-js-ssr-renderer, element-library): open an issue there (`gh issue create --repo <owner/lib>`) that states the need and the context here, with at most a non-binding proposal; add the smallest workaround marked `// UPSTREAM: <issue-url>`, keep going. Never wait for upstream.
 4. `npm test && npm run build` must pass. After three failed attempts: open a draft PR, label `needs-human`, stop.
 5. Review your own diff: security, dead code, error handling, accessibility.
@@ -40,15 +43,22 @@ Claude runs unattended via `.github/workflows/agent.yml`. Nobody answers questio
 
 **Always:**
 
-- Size and safety: before implementing, judge the scope. If it needs more than one PR (several independent parts, more than ~15 files), create sub-issues with `gh issue create` (the first labelled `ready`, the rest unlabelled), attach each to the parent as a GitHub sub-issue, comment the list on the parent, and work only the first. Commit and push the branch after the first meaningful step and keep pushing, so nothing is lost when the run hits its turn limit.
+- Size and safety: before implementing, judge the scope. If it needs more than one PR (several independent parts, more than ~15 files), create sub-issues with `gh issue create` (the first labelled `ready`, the rest unlabelled), attach each to the parent as a GitHub sub-issue, comment the list on the parent, and work only the first. Commit and push after the first meaningful step and keep pushing, so nothing is lost when the run hits its turn limit.
 - Dependencies are GitHub relations, never prose. When an issue cannot be finished before another one is closed, set "blocked by"; when you split work, set sub-issues. Lines like "Blocked by: #3" or "depends on #6" in the text are not read by the cockpit. Ids via `gh issue view <n> --json id --jq .id` (add `--repo` for another repo), then:
   `gh api graphql -f query='mutation($a:ID!,$b:ID!){addBlockedBy(input:{issueId:$a,blockingIssueId:$b}){clientMutationId}}' -F a=<id of the waiting issue> -F b=<id of the blocker>`
   `gh api graphql -f query='mutation($a:ID!,$b:ID!){addSubIssue(input:{issueId:$a,subIssueId:$b}){clientMutationId}}' -F a=<id of the parent> -F b=<id of the sub-issue>`
   An upstream issue with a workaround in place is not a blocker; set "blocked by" only when the work truly cannot proceed.
+- Memory of this repository: nothing survives a run except what is committed. Rules live in this file. Every change a user or a developer of this project would notice gets its lines in `CHANGELOG.md` (see **Changelog**), in the same commit. When you deviate from an issue or choose between options, write `docs/decisions/NNNN-<slug>.md` (next free number; `## Context`, `## Decision`, `## Consequences`; at most 20 lines) and link it from the changelog line. Do not keep status logs or decisions in this file.
 - Never ask. Blocked means: comment the question with options, `needs-human`, stop.
-- One issue, one branch, one PR. Conventional commits (`feat:`, `fix:`, `chore:`, ...). Never force-push. Never commit secrets.
-- Eddy merges, not the agent.
-- Never create or modify files under `.github/workflows/`: the App token lacks the `workflows` scope and the push is rejected. Describe the needed workflow change in a `needs-human` issue instead and continue.
+- Conventional commits (`feat:`, `fix:`, `chore:`, ...). Never force-push. Never commit secrets.
+- In the loop, Eddy merges, not the agent.
+- In the loop, never create or modify files under `.github/workflows/`: the App token lacks the `workflows` scope and the push is rejected. Describe the needed workflow change in a `needs-human` issue instead and continue. Locally, Eddy's `gh` has the scope.
+
+**Changelog** (`CHANGELOG.md`, newest first):
+
+- `## Unreleased` on top, then one `## v<Version> · <YYYY-MM-DD> · <Title>` heading per release; the version in `package.json` is the topmost released one. The heading format is a contract: some apps show the file as release notes.
+- Bullets are written for the people who use or build the project: what changed and why it matters, not which files moved. Keep the language the file already uses.
+- A release moves the Unreleased lines under a new version heading and bumps `package.json`. The loop never releases; Eddy does. Where this file says otherwise for a repository (version bump per commit), that rule wins.
 
 **Writing for humans** (issues, PRs, comments):
 
