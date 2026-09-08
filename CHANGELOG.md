@@ -7,6 +7,9 @@ is the topmost released one here.
 
 ## Unreleased
 
+- Releases run from tags: pushing `v<version>` runs the tests, publishes to npm through trusted publishing (no token, provenance included) and creates the GitHub Release with this file's matching section as notes. The tag must equal the version in `package.json`. Decision: [0010](docs/decisions/0010-release-on-tag.md).
+- `LICENSE` file (MIT) and `repository`, `bugs`, `homepage` in `package.json`, so npm shows the license and source and can attest provenance.
+
 - Node 24 is the required version (`engines.node` in `package.json`); CI, deploy and the agent workflow read it from there.
 
 ## v0.2.0 · 2026-09-08 · Cloudflare R2, ESM only, a concurrency-safe index

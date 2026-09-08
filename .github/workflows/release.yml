@@ -1,0 +1,44 @@
+name: Release
+
+# Pushing a tag v<version> publishes that version to npm and creates the GitHub Release.
+# The tag must equal the version in package.json, and CHANGELOG.md must have a section
+# `## v<version> · <date> · <title>`; its lines become the release notes.
+# Publishing uses npm trusted publishing (OIDC): no NPM_TOKEN, provenance is automatic.
+# One-time setup per package: publish the first version by hand, then on npmjs.com under
+# Package Settings → Trusted Publisher add GitHub Actions with this repo and `release.yml`.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      - name: Tag matches package.json
+        run: |
+          v="v$(node -p 'require("./package.json").version')"
+          [ "$v" = "$GITHUB_REF_NAME" ] || { echo "tag is $GITHUB_REF_NAME, package.json says $v"; exit 1; }
+      - name: Release notes from CHANGELOG.md
+        run: |
+          grep -m1 "^## $GITHUB_REF_NAME " CHANGELOG.md | sed 's/^## //' > "$RUNNER_TEMP/title"
+          awk -v v="$GITHUB_REF_NAME" '/^## /{ if (on) exit; on = ($2 == v) } on && !/^## /' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          [ -s "$RUNNER_TEMP/title" ] && [ -s "$RUNNER_TEMP/notes.md" ] || { echo "CHANGELOG.md has no section '## $GITHUB_REF_NAME · <date> · <title>'"; exit 1; }
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npm install -g npm@latest
+      - run: npm publish --access public
+      - run: gh release create "$GITHUB_REF_NAME" --verify-tag --title "$(cat "$RUNNER_TEMP/title")" --notes-file "$RUNNER_TEMP/notes.md"
+        env:
+          GH_TOKEN: ${{ github.token }}
