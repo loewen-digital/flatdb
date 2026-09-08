@@ -2,7 +2,7 @@
 #   issue gets label `ready`          -> implement it, open a PR
 #   review lands on a claude/* PR     -> address it
 #   "@claude" in a comment            -> do what the comment says
-# What Claude does is defined in CLAUDE.md, section "Agent Loop".
+# What Claude does is defined in AGENTS.md, section "Agent Loop".
 name: Agent
 
 on:
@@ -66,9 +66,9 @@ jobs:
             --allowedTools "Bash(npm:*),Bash(npx:*),Bash(gh:*),Bash(git:*),Read,Write,Edit,Glob,Grep,WebFetch"
           prompt: >-
             ${{ github.event_name == 'issues'
-                && format('Issue #{0} has the label ready. Follow CLAUDE.md, section "Agent Loop", part "Issue".', github.event.issue.number)
+                && format('Issue #{0} has the label ready. Follow AGENTS.md, section "Agent Loop", part "Issue".', github.event.issue.number)
                 || github.event_name == 'pull_request_review'
-                && format('A review was submitted on PR #{0}. Follow CLAUDE.md, section "Agent Loop", part "Review".', github.event.pull_request.number)
+                && format('A review was submitted on PR #{0}. Follow AGENTS.md, section "Agent Loop", part "Review".', github.event.pull_request.number)
                 || '' }}
       - name: Request Codex review
         if: github.event_name == 'issues' || github.event_name == 'pull_request_review'

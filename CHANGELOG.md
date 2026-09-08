@@ -6,3 +6,5 @@ format is a contract, keep it: `## v<Version> · <YYYY-MM-DD> · <Title>`. Lines
 is the topmost released one here.
 
 ## Unreleased
+
+- Agent rules live in `AGENTS.md`; `CLAUDE.md` only imports it. The Codex review rules are a section of the same file.
