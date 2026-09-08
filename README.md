@@ -5,7 +5,7 @@ A schema-optional document database using the filesystem as storage. One file pe
 - **TypeScript-first** — full autocomplete and type inference from the schema
 - **Agent-friendly** — agents can read/write JSON files directly, the DB picks it up
 - **Git-friendly** — human-readable JSON, one file per document, easy diffs
-- **Cross-platform** — Node.js, Bun, Deno, Browser (IndexedDB), Edge runtimes
+- **Cross-platform** — Node.js, Bun, Deno, Browser (IndexedDB), Cloudflare Workers (R2)
 
 ## Install
 
@@ -187,7 +187,49 @@ const db = flatdb('idb://myapp')
 // In-memory — tests / SSR
 import { MemoryAdapter } from '@loewen-digital/flatdb'
 const db = flatdb(new MemoryAdapter())
+
+// Cloudflare Workers — R2 (see below)
+import { R2Adapter } from '@loewen-digital/flatdb'
+const db = flatdb(new R2Adapter({ bucket: env.CONTENT }))
 ```
+
+## Cloudflare R2
+
+`R2Adapter` stores every document as an object in an R2 bucket. Keys mirror the file layout (`users/xk7f2a.json`, `pages/blog/my-first-post.json`), so a bucket looks exactly like a `./data` folder. It takes any R2 binding and needs no Cloudflare types at compile time.
+
+```jsonc
+// wrangler.jsonc
+{
+  "compatibility_flags": ["nodejs_compat"],
+  "r2_buckets": [{ "binding": "CONTENT", "bucket_name": "my-app-content" }]
+}
+```
+
+```ts
+// src/lib/server/db.ts (SvelteKit with adapter-cloudflare)
+import { flatdb, collection, R2Adapter } from '@loewen-digital/flatdb'
+
+export function getDb(platform: App.Platform) {
+  return flatdb(new R2Adapter({ bucket: platform.env.CONTENT, prefix: 'data' }), {
+    users: collection(userSchema),
+  })
+}
+
+// +page.server.ts
+export const load = async ({ platform }) => {
+  const db = getDb(platform!)
+  return { users: await db.users.find() }
+}
+```
+
+`platform.env.CONTENT` is typed through `App.Platform` in `app.d.ts`; the `R2Bucket` type from `@cloudflare/workers-types` satisfies `R2BucketLike`. `prefix` is optional and namespaces all keys, so one bucket can hold several databases next to other files.
+
+What to know when running on Workers:
+
+- **One database per request.** A collection caches `_index.json` in memory and refreshes it only on its own writes. Build `flatdb()` inside the request, as above, so every request reads the current index. A module-level instance serves stale results once another isolate writes.
+- **Concurrent writes are not serialized.** Two requests writing the same collection at the same time can lose an `_index.json` update. The documents themselves are safe and `rebuildIndex()` restores the index from them. Route writes through a Durable Object where this matters. Tracked in [#3](https://github.com/loewen-digital/flatdb/issues/3).
+- **No external watch.** R2 bindings have no change notifications, so `{ watch: true }` has no effect. Live queries still react to writes made through the same instance.
+- **`nodejs_compat` is required.** The package entry also exports `FsAdapter`, whose `fs` import has to resolve even though Workers never call it.
 
 ## Framework Adapters
 
@@ -216,7 +258,7 @@ const todos = createLiveQuery(() => db.todos.find({ done: false }))
 │  Collections │ Queries │ Refs │ Reactivity  │
 ├─────────────────────────────────────────────┤
 │            Storage Adapter                  │
-│    FsAdapter │ IndexedDBAdapter │ Memory    │
+│  FsAdapter │ IndexedDB │ Memory │ R2Adapter │
 └─────────────────────────────────────────────┘
 ```
 

@@ -573,7 +573,7 @@ Every runtime implements this interface. The entire core (Collections, Queries, 
 | Deno               | `FsAdapter`           | Filesystem | ✅          | ✅ `Deno.watchFs` | Phase 1 (same code) |
 | Browser            | `IndexedDBAdapter`    | IndexedDB  | ✅          | — (n/a)          | Phase 2             |
 | Tests / SSR        | `MemoryAdapter`       | RAM        | ✅          | — (n/a)          | Phase 3             |
-| Cloudflare Workers | `CloudflareKVAdapter` | KV / R2    | ✅          | — (n/a)          | Phase 4 (on demand) |
+| Cloudflare Workers | `R2Adapter`           | R2         | ✅          | — (n/a)          | Phase 4 (done)      |
 | Vercel Edge        | `VercelKVAdapter`     | Vercel KV  | ✅          | — (n/a)          | Phase 4 (on demand) |
 
 ### Node / Bun / Deno
@@ -615,25 +615,30 @@ const db = flatdb(new MemoryAdapter())
 
 ### Edge Runtimes (Cloudflare, Vercel)
 
-Edge has neither filesystem nor IndexedDB. Adapters map to key-value stores.
+Edge has neither filesystem nor IndexedDB. Adapters map to object or key-value stores.
 
 ```ts
 // Cloudflare Worker
-import { CloudflareKVAdapter } from '@loewen-digital/flatdb/cloudflare'
+import { R2Adapter } from '@loewen-digital/flatdb'
 
-const db = flatdb(new CloudflareKVAdapter(env.MY_KV_NAMESPACE))
+const db = flatdb(new R2Adapter({ bucket: env.CONTENT, prefix: 'data' }))
 
 // Under the hood:
-// read("todos/abc123")      → KV.get("todos/abc123")
-// write("todos/abc123", ..) → KV.put("todos/abc123", data)
-// list("todos/")            → KV.list({ prefix: "todos/" })
+// read("todos/abc.json")      → bucket.get("data/todos/abc.json")
+// write("todos/abc.json", ..) → bucket.put("data/todos/abc.json", data)
+// list("todos")               → bucket.list({ prefix: "data/todos/", delimiter: "/" }), paged by cursor
+// exists("todos/x")           → bucket.head(), then a one-object list for implicit directories
+// move(a, b)                  → copy every object below a, then delete (R2 has no rename)
 ```
+
+`R2BucketLike` is a structural slice of the binding (`head`, `get`, `put`, `delete`, `list`), so the package has no dependency on `@cloudflare/workers-types`.
 
 Limitations on Edge:
 
 - No External Watch (no external access possible → n/a). Reactivity via internal EventEmitter works normally.
-- KV is eventually consistent → reads may be briefly stale
+- Writes from concurrent requests are not serialized; the README section "Cloudflare R2" explains the consequences, issue #3 tracks conditional index writes.
 - Folder structure is emulated via key prefixes
+- KV stores (Vercel KV, Cloudflare KV) are eventually consistent → reads may be briefly stale. R2 is strongly consistent.
 
 ### Rollout Order
 
@@ -641,7 +646,7 @@ Limitations on Edge:
 Phase 1:  FsAdapter          → Node, Bun, Deno
 Phase 2:  IndexedDBAdapter   → Browser
 Phase 3:  MemoryAdapter      → Tests, SSR
-Phase 4:  Edge Adapters      → Cloudflare, Vercel (on demand)
+Phase 4:  R2Adapter          → Cloudflare Workers (Vercel on demand)
 ```
 
 -----
@@ -691,7 +696,7 @@ db.collection.tree(path?)                  → Promise<TreeNode>
 │  Collections │ Queries │ Refs │ Reactivity  │
 ├─────────────────────────────────────────────┤
 │            Storage Adapter                  │
-│    FsAdapter │ IndexedDBAdapter │ Memory    │
+│  FsAdapter │ IndexedDB │ Memory │ R2Adapter │
 └─────────────────────────────────────────────┘
 ```
 
