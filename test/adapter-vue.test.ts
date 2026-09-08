@@ -12,6 +12,7 @@ vi.mock('vue', () => ({
   },
 }))
 
+import { z } from 'zod'
 import { MemoryAdapter } from '../src/memory-adapter.js'
 import { Collection } from '../src/collection.js'
 import { useLiveQuery } from '../src/adapters/vue.js'
@@ -68,5 +69,18 @@ describe('Vue adapter: useLiveQuery()', () => {
 
     // Should still be empty since we cleaned up
     expect(result.value).toHaveLength(0)
+  })
+
+  it('forwards onError', async () => {
+    const strict = new Collection(adapter, 'strict', z.object({ text: z.string() }))
+    await adapter.write('strict/_index.json', JSON.stringify({ x: { text: 1 } }))
+    const errors: unknown[] = []
+    useLiveQuery(strict, {}, e => errors.push(e))
+    const unsub = () => {}
+
+    await new Promise(r => setTimeout(r, 50))
+    expect(errors).toHaveLength(1)
+    expect(errors[0]).toBeInstanceOf(z.ZodError)
+    unsub()
   })
 })

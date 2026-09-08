@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
+import { z } from 'zod'
 import { MemoryAdapter } from '../src/memory-adapter.js'
 import { Collection } from '../src/collection.js'
 import { liveQuery } from '../src/adapters/svelte.js'
@@ -89,5 +90,18 @@ describe('Svelte adapter: liveQuery()', () => {
     await new Promise(r => setTimeout(r, 50))
 
     expect(results.length).toBe(countAfterUnsub)
+  })
+
+  it('forwards onError', async () => {
+    const strict = new Collection(adapter, 'strict', z.object({ text: z.string() }))
+    await adapter.write('strict/_index.json', JSON.stringify({ x: { text: 1 } }))
+    const errors: unknown[] = []
+    const store = liveQuery(strict, {}, e => errors.push(e))
+    const unsub = store.subscribe(() => {})
+
+    await new Promise(r => setTimeout(r, 50))
+    expect(errors).toHaveLength(1)
+    expect(errors[0]).toBeInstanceOf(z.ZodError)
+    unsub()
   })
 })

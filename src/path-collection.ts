@@ -2,6 +2,7 @@ import type { ZodType } from 'zod'
 import type { StorageAdapter, CollectionOptions, QueryFilter, QueryOptions } from './types.js'
 import { matchesFilter, applyOptions } from './query.js'
 import { EventEmitter } from './emitter.js'
+import { liveQuery, watchQuery, type LiveErrorHandler } from './live.js'
 
 const INDEX_FILE = '_index.json'
 
@@ -355,80 +356,33 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
 
   // --- Reactivity ---
 
-  live(filter: QueryFilter, cb: (results: T[]) => void): () => void
-  live(cb: (results: T[]) => void): () => void
+  /**
+   * Runs the query now and after every change. Errors from the query or the
+   * callback go to `onError` (default: logged); the subscription stays alive.
+   */
+  live(filter: QueryFilter, cb: (results: T[]) => void, onError?: LiveErrorHandler): () => void
+  live(cb: (results: T[]) => void, onError?: LiveErrorHandler): () => void
   live(
     filterOrCb: QueryFilter | ((results: T[]) => void),
-    maybeCb?: (results: T[]) => void,
+    cbOrOnError?: ((results: T[]) => void) | LiveErrorHandler,
+    maybeOnError?: LiveErrorHandler,
   ): () => void {
-    const filter = typeof filterOrCb === 'function' ? {} : filterOrCb
-    const cb = (typeof filterOrCb === 'function' ? filterOrCb : maybeCb!) as (results: T[]) => void
-
-    this.find(filter).then(results => cb(results))
-
-    const unsub = this.emitter.subscribe(() => {
-      this.find(filter).then(results => cb(results))
-    })
-
-    return unsub
+    const byCallback = typeof filterOrCb === 'function'
+    const filter = byCallback ? {} : filterOrCb
+    const cb = (byCallback ? filterOrCb : cbOrOnError) as (results: T[]) => void
+    const onError = (byCallback ? cbOrOnError : maybeOnError) as LiveErrorHandler | undefined
+    return liveQuery(this.emitter, () => this.find(filter), cb, onError)
   }
 
-  liveByPath(path: string, cb: (doc: T | null) => void): () => void {
-    this.get(path).then(cb)
-
-    const unsub = this.emitter.subscribe(() => {
-      this.get(path).then(cb)
-    })
-
-    return unsub
+  liveByPath(path: string, cb: (doc: T | null) => void, onError?: LiveErrorHandler): () => void {
+    return liveQuery(this.emitter, () => this.get(path), cb, onError)
   }
 
+  /** Async iterator over the results; ends with the error when a query fails. */
   watch(filter: QueryFilter = {}): AsyncIterable<T[]> {
-    const self = this
-    return {
-      [Symbol.asyncIterator]() {
-        let resolve: ((value: IteratorResult<T[]>) => void) | null = null
-        let done = false
-
-        const unsub = self.emitter.subscribe(() => {
-          if (resolve) {
-            self.find(filter).then(results => {
-              if (resolve) {
-                resolve({ value: results, done: false })
-                resolve = null
-              }
-            })
-          }
-        })
-
-        const initialPromise = new Promise<IteratorResult<T[]>>(r => {
-          self.find(filter).then(results => {
-            r({ value: results, done: false })
-          })
-        })
-
-        let firstCall = true
-
-        return {
-          next() {
-            if (done) return Promise.resolve({ value: undefined as any, done: true })
-            if (firstCall) {
-              firstCall = false
-              return initialPromise
-            }
-            return new Promise<IteratorResult<T[]>>(r => {
-              resolve = r
-            })
-          },
-          return() {
-            done = true
-            unsub()
-            return Promise.resolve({ value: undefined as any, done: true })
-          },
-        }
-      },
-    }
+    return watchQuery(this.emitter, () => this.find(filter))
   }
+
 }
 
 function matchPathPattern(docPath: string, pattern: string): boolean {

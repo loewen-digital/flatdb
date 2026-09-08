@@ -1,6 +1,7 @@
 import { ref, onUnmounted, type Ref } from 'vue'
 import type { Collection } from '../collection.js'
 import type { PathCollection } from '../path-collection.js'
+import type { LiveErrorHandler } from '../live.js'
 
 type AnyCollection = Collection<any> | PathCollection<any>
 
@@ -21,12 +22,13 @@ type AnyCollection = Collection<any> | PathCollection<any>
 export function useLiveQuery<T>(
   collection: AnyCollection,
   filter: Record<string, any> = {},
+  onError?: LiveErrorHandler,
 ): Ref<T[]> {
   const data = ref<T[]>([]) as Ref<T[]>
 
   const unsub = collection.live(filter, (results: any[]) => {
     data.value = results as T[]
-  })
+  }, onError)
 
   onUnmounted(() => {
     unsub()

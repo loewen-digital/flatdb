@@ -1,6 +1,7 @@
 import { createSignal, onCleanup, type Accessor } from 'solid-js'
 import type { Collection } from '../collection.js'
 import type { PathCollection } from '../path-collection.js'
+import type { LiveErrorHandler } from '../live.js'
 
 type AnyCollection = Collection<any> | PathCollection<any>
 
@@ -20,12 +21,13 @@ type AnyCollection = Collection<any> | PathCollection<any>
 export function createLiveQuery<T>(
   collection: AnyCollection,
   filter: Record<string, any> = {},
+  onError?: LiveErrorHandler,
 ): Accessor<T[]> {
   const [data, setData] = createSignal<T[]>([])
 
   const unsub = collection.live(filter, (results: any[]) => {
     setData(() => results as T[])
-  })
+  }, onError)
 
   onCleanup(() => {
     unsub()

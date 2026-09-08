@@ -7,6 +7,7 @@ is the topmost released one here.
 
 ## Unreleased
 
+- Live queries no longer crash the process: a failing re-query or a throwing callback in `live()`, `liveById()` and `liveByPath()` goes to an optional `onError` (default: logged) and the subscription stays alive; `watch()` ends with the error. The framework adapters take `onError` as third argument. Decision: [0005](docs/decisions/0005-live-query-errors.md). (#5)
 - Open work lives in GitHub issues only: the review findings from `tasks.md` are now #4 (close the database), #5 (errors in live queries) and #6 (shared deepMerge, migrate tests); the file is gone.
 - ESM only: the CommonJS build is gone (`dist/*.cjs` and the `require` conditions). `require('@loewen-digital/flatdb')` no longer works; use `import`. Decision: [0004](docs/decisions/0004-esm-only.md).
 - Dependency `nanoid` bumped to 5.1.16 (GHSA-xwg4-73v4-xw9w, GHSA-28wg-ghj8-5hjv); the lockfile's transitive nanoid 3.x moved to 3.3.18.

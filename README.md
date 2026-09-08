@@ -161,7 +161,11 @@ const unsub = db.todos.live({ done: false }, (results) => {
   console.log('Active todos:', results)
 })
 
-// Watch (async iterator)
+// Errors (a corrupt file, a document that fails the schema) go to an optional
+// second callback; without one they are logged. The subscription stays alive.
+db.todos.live({ done: false }, render, (error) => report(error))
+
+// Watch (async iterator) — ends with the error when a query fails
 for await (const results of db.todos.watch({ done: false })) {
   console.log('Updated:', results)
 }
@@ -245,6 +249,9 @@ const todos = useLiveQuery(() => db.todos.find({ done: false }))
 // SolidJS
 import { createLiveQuery } from '@loewen-digital/flatdb/solid'
 const todos = createLiveQuery(() => db.todos.find({ done: false }))
+
+// All three take an optional onError as third argument
+const todos = liveQuery(db.todos, { done: false }, (error) => report(error))
 ```
 
 ## Architecture

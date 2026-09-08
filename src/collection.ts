@@ -4,6 +4,7 @@ import type { StorageAdapter, CollectionOptions, QueryFilter, QueryOptions } fro
 import { matchesFilter, applyOptions } from './query.js'
 import { extractRefMeta, serializeRefs, deserializeRefs, populateDoc, type RefMeta, type RefResolver } from './ref.js'
 import { EventEmitter } from './emitter.js'
+import { liveQuery, watchQuery, type LiveErrorHandler } from './live.js'
 
 const INDEX_FILE = '_index.json'
 
@@ -259,84 +260,33 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
 
   // --- Reactivity ---
 
-  live(filter: QueryFilter, cb: (results: (T & { _id: string })[]) => void): () => void
-  live(cb: (results: (T & { _id: string })[]) => void): () => void
+  /**
+   * Runs the query now and after every change. Errors from the query or the
+   * callback go to `onError` (default: logged); the subscription stays alive.
+   */
+  live(filter: QueryFilter, cb: (results: (T & { _id: string })[]) => void, onError?: LiveErrorHandler): () => void
+  live(cb: (results: (T & { _id: string })[]) => void, onError?: LiveErrorHandler): () => void
   live(
     filterOrCb: QueryFilter | ((results: (T & { _id: string })[]) => void),
-    maybeCb?: (results: (T & { _id: string })[]) => void,
+    cbOrOnError?: ((results: (T & { _id: string })[]) => void) | LiveErrorHandler,
+    maybeOnError?: LiveErrorHandler,
   ): () => void {
-    const filter = typeof filterOrCb === 'function' ? {} : filterOrCb
-    const cb =
-      (typeof filterOrCb === 'function' ? filterOrCb : maybeCb!) as (results: (T & { _id: string })[]) => void
-
-    // Initial query
-    this.find(filter).then(results => cb(results))
-
-    // Re-query on every change
-    const unsub = this.emitter.subscribe(() => {
-      this.find(filter).then(results => cb(results))
-    })
-
-    return unsub
+    const byCallback = typeof filterOrCb === 'function'
+    const filter = byCallback ? {} : filterOrCb
+    const cb = (byCallback ? filterOrCb : cbOrOnError) as (results: (T & { _id: string })[]) => void
+    const onError = (byCallback ? cbOrOnError : maybeOnError) as LiveErrorHandler | undefined
+    return liveQuery(this.emitter, () => this.find(filter), cb, onError)
   }
 
-  liveById(id: string, cb: (doc: (T & { _id: string }) | null) => void): () => void {
-    this.findById(id).then(cb)
-
-    const unsub = this.emitter.subscribe(() => {
-      this.findById(id).then(cb)
-    })
-
-    return unsub
+  liveById(id: string, cb: (doc: (T & { _id: string }) | null) => void, onError?: LiveErrorHandler): () => void {
+    return liveQuery(this.emitter, () => this.findById(id), cb, onError)
   }
 
+  /** Async iterator over the results; ends with the error when a query fails. */
   watch(filter: QueryFilter = {}): AsyncIterable<(T & { _id: string })[]> {
-    type Result = (T & { _id: string })[]
-    type Resolve = (value: IteratorResult<Result>) => void
-    const self = this
-    return {
-      [Symbol.asyncIterator]() {
-        let resolve: Resolve | null = null
-        let done = false
-
-        const unsub = self.emitter.subscribe(() => {
-          if (resolve) {
-            const r = resolve
-            resolve = null
-            self.find(filter).then(results => {
-              r({ value: results, done: false })
-            })
-          }
-        })
-
-        const initialPromise = new Promise<IteratorResult<Result>>(r => {
-          self.find(filter).then(results => {
-            r({ value: results, done: false })
-          })
-        })
-
-        let firstCall = true
-
-        return {
-          next() {
-            if (done) return Promise.resolve({ value: undefined as any, done: true as const })
-            if (firstCall) {
-              firstCall = false
-              return initialPromise
-            }
-            return new Promise<IteratorResult<Result>>(r => {
-              resolve = r
-            })
-          },
-          return() {
-            done = true
-            unsub()
-            return Promise.resolve({ value: undefined as any, done: true as const })
-          },
-        }
-      },
-    }
+    return watchQuery(this.emitter, () => this.find(filter))
   }
+
 }
 
 function deepMerge(target: Record<string, any>, source: Record<string, any>): Record<string, any> {

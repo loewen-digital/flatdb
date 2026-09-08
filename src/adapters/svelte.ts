@@ -1,5 +1,6 @@
 import type { Collection } from '../collection.js'
 import type { PathCollection } from '../path-collection.js'
+import type { LiveErrorHandler } from '../live.js'
 
 type AnyCollection = Collection<any> | PathCollection<any>
 
@@ -24,13 +25,13 @@ interface Readable<T> {
 export function liveQuery<T>(
   collection: AnyCollection,
   filter: Record<string, any> = {},
+  onError?: LiveErrorHandler,
 ): Readable<T[]> {
   return {
     subscribe(cb: (value: T[]) => void) {
-      const unsub = collection.live(filter, (results: any[]) => {
+      return collection.live(filter, (results: any[]) => {
         cb(results as T[])
-      })
-      return unsub
+      }, onError)
     },
   }
 }

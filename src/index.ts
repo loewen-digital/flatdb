@@ -1,4 +1,5 @@
 export type { StorageAdapter, WatchEvent } from './types.js'
+export type { LiveErrorHandler } from './live.js'
 export { FsAdapter } from './fs-adapter.js'
 export { IndexedDBAdapter } from './indexeddb-adapter.js'
 export { MemoryAdapter } from './memory-adapter.js'

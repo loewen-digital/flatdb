@@ -16,6 +16,7 @@ vi.mock('solid-js', () => ({
   },
 }))
 
+import { z } from 'zod'
 import { MemoryAdapter } from '../src/memory-adapter.js'
 import { Collection } from '../src/collection.js'
 import { createLiveQuery } from '../src/adapters/solid.js'
@@ -71,5 +72,18 @@ describe('Solid adapter: createLiveQuery()', () => {
     await new Promise(r => setTimeout(r, 50))
 
     expect(todos()).toHaveLength(0)
+  })
+
+  it('forwards onError', async () => {
+    const strict = new Collection(adapter, 'strict', z.object({ text: z.string() }))
+    await adapter.write('strict/_index.json', JSON.stringify({ x: { text: 1 } }))
+    const errors: unknown[] = []
+    createLiveQuery(strict, {}, e => errors.push(e))
+    const unsub = () => {}
+
+    await new Promise(r => setTimeout(r, 50))
+    expect(errors).toHaveLength(1)
+    expect(errors[0]).toBeInstanceOf(z.ZodError)
+    unsub()
   })
 })
