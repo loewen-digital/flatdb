@@ -13,17 +13,17 @@
       "require": "./dist/index.cjs"
     },
     "./svelte": {
-      "types": "./dist/svelte.d.ts",
+      "types": "./dist/adapters/svelte.d.ts",
       "import": "./dist/svelte.js",
       "require": "./dist/svelte.cjs"
     },
     "./vue": {
-      "types": "./dist/vue.d.ts",
+      "types": "./dist/adapters/vue.d.ts",
       "import": "./dist/vue.js",
       "require": "./dist/vue.cjs"
     },
     "./solid": {
-      "types": "./dist/solid.d.ts",
+      "types": "./dist/adapters/solid.d.ts",
       "import": "./dist/solid.js",
       "require": "./dist/solid.cjs"
     }
