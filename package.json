@@ -1,6 +1,6 @@
 {
   "name": "@loewen-digital/flatdb",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Flat-file document database for TypeScript/JavaScript",
   "type": "module",
   "main": "./dist/index.js",

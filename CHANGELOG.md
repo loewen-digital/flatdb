@@ -7,6 +7,9 @@ is the topmost released one here.
 
 ## Unreleased
 
+## v0.2.0 · 2026-09-08 · Cloudflare R2, ESM only, a concurrency-safe index
+
+- First release on npm. The April build is recorded below as v0.1.0, so the fixes in this release read against the state they fix; it was never published. Decision: [0009](docs/decisions/0009-retroactive-v0-1-0.md).
 - Concurrent writers no longer lose `_index.json` entries: the index is written as a compare-and-swap through new optional `readVersioned`/`writeIf` hooks on `StorageAdapter`, implemented for R2 (etag), IndexedDB (one transaction) and Memory; a writer that lost the race reloads, re-applies its change and retries. `FsAdapter` is unchanged. Decision: [0008](docs/decisions/0008-index-compare-and-swap.md). (#3)
 - `migrate` now runs on every read, before filters are matched and regardless of schema or `validateOnRead`, so queries find old documents by their migrated fields; files still change on their next write. `deepMerge` is one shared function, and both are covered by tests. Decision: [0007](docs/decisions/0007-migrate-on-read.md). (#6)
 - `db.close()` stops the file watchers started by `{ watch: true }` and closes the adapter's connection (IndexedDB); `StorageAdapter` gained an optional `close()`. A collection named `close` is rejected. Decision: [0006](docs/decisions/0006-close-on-the-handle.md). (#4)
@@ -18,3 +21,16 @@ is the topmost released one here.
 - Types for the `./svelte`, `./vue` and `./solid` imports resolve again; the exports pointed at declaration files the build never emits.
 - The npm tarball now contains `dist`; without a `files` field npm followed `.gitignore` and packed the sources without the built entry points. `npm pack` and `npm publish` rebuild first.
 - Agent rules live in `AGENTS.md`; `CLAUDE.md` only imports it. The Codex review rules are a section of the same file.
+
+## v0.1.0 · 2026-04-01 · Initial build
+
+- Never published to npm; this section is reconstructed from the README and the commits of 2026-03-31 to 2026-04-01. Tag `v0.1.0` marks the state.
+- `flatdb(path, schema?, options?)` opens a database of typed collections: one JSON file per document, a `_index.json` per collection for queries. Schemaless without a schema, or `collection(zodSchema, options)` with full type inference from Zod. Options `unknownFields` (`strip`, `passthrough`, `error`), `validateOnRead` and `migrate` for lazy schema evolution without migration runs.
+- Auto mode (default): nanoid `_id`, `insert`, `insertMany`, `findById`, `findOne`, `find`, `count`, `update`, `delete`, `deleteMany`.
+- Path mode (`{ mode: 'path' }`): the file path is the identity, for CMS pages and docs. `insert(path, doc)`, `get`, `find` with `$path` globs, `move`, `promote` (leaf to `path/index.json`) and `demote` (back to a leaf while it has no children), `tree()` for a subtree.
+- Query engine with comparison (`$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$between`), set (`$in`, `$nin`), string (`$contains`, `$startsWith`, `$endsWith`, `$regex`), array (`$containsAll`, `$containsAny`) and logical (`$and`, `$or`, `$not`) operators, nested fields by dot path, and the options `sort`, `limit`, `skip`, `select`, `populate`.
+- References: `ref('users')` in a schema stores IDs, `populate` resolves them to documents, arrays of refs included.
+- Reactivity: `live(filter, cb)` with a callback and `watch(filter)` as async iterator, plus `liveById` and `liveByPath`. Changes made through the database are pushed by an internal event emitter; `{ watch: true }` also picks up files edited outside (by agents or editors) through `fs.watch`.
+- Storage adapters: `FsAdapter` for Node, Bun and Deno, `IndexedDBAdapter` in the browser via `flatdb('idb://name')`, `MemoryAdapter` for tests and SSR. The `StorageAdapter` interface (`read`, `write`, `delete`, `exists`, `list`, `mkdir`, `move`, optional `watch`) takes custom backends.
+- Framework adapters: `liveQuery` from `@loewen-digital/flatdb/svelte` (Svelte 5), `useLiveQuery` from `./vue` (Vue 3), `createLiveQuery` from `./solid`.
+- Tooling: Vite build with ESM and CommonJS output, a vitest suite covering collections, queries, refs, reactivity and every adapter; the API design lives in `flatdb-api-design.md`.
