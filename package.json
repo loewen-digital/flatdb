@@ -28,8 +28,12 @@
       "require": "./dist/solid.cjs"
     }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "vite build",
+    "prepack": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest"
   },
