@@ -177,6 +177,9 @@ Enable filesystem watching so external changes (e.g. from agents editing JSON fi
 
 ```ts
 const db = flatdb('./data', schema, { watch: true })
+
+// Stop watching (and close the adapter's connection, if it has one)
+await db.close()
 ```
 
 ## Environments
@@ -185,7 +188,7 @@ const db = flatdb('./data', schema, { watch: true })
 // Node / Bun / Deno — filesystem
 const db = flatdb('./data')
 
-// Browser — IndexedDB
+// Browser — IndexedDB (db.close() releases the connection)
 const db = flatdb('idb://myapp')
 
 // In-memory — tests / SSR

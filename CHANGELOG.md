@@ -7,6 +7,7 @@ is the topmost released one here.
 
 ## Unreleased
 
+- `db.close()` stops the file watchers started by `{ watch: true }` and closes the adapter's connection (IndexedDB); `StorageAdapter` gained an optional `close()`. A collection named `close` is rejected. Decision: [0006](docs/decisions/0006-close-on-the-handle.md). (#4)
 - Live queries no longer crash the process: a failing re-query or a throwing callback in `live()`, `liveById()` and `liveByPath()` goes to an optional `onError` (default: logged) and the subscription stays alive; `watch()` ends with the error. The framework adapters take `onError` as third argument. Decision: [0005](docs/decisions/0005-live-query-errors.md). (#5)
 - Open work lives in GitHub issues only: the review findings from `tasks.md` are now #4 (close the database), #5 (errors in live queries) and #6 (shared deepMerge, migrate tests); the file is gone.
 - ESM only: the CommonJS build is gone (`dist/*.cjs` and the `require` conditions). `require('@loewen-digital/flatdb')` no longer works; use `import`. Decision: [0004](docs/decisions/0004-esm-only.md).

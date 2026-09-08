@@ -18,11 +18,19 @@ type CollectionMap<T extends Record<string, CollectionDefinition>> = {
   [K in keyof T]: Collection | PathCollection
 }
 
+export type FlatDb<T extends Record<string, CollectionDefinition>> = CollectionMap<T> & {
+  /**
+   * Stops file watchers and closes the adapter's connection when it has one.
+   * Safe to call more than once; the collections stay usable afterwards.
+   */
+  close(): Promise<void>
+}
+
 export function flatdb<T extends Record<string, CollectionDefinition>>(
   pathOrAdapter: string | StorageAdapter,
   collections?: T,
   options?: FlatDbOptions,
-): CollectionMap<T> {
+): FlatDb<T> {
   let adapter: StorageAdapter
   if (typeof pathOrAdapter === 'string') {
     if (pathOrAdapter.startsWith('idb://')) {
@@ -34,8 +42,12 @@ export function flatdb<T extends Record<string, CollectionDefinition>>(
     adapter = pathOrAdapter
   }
 
+  if (collections && 'close' in collections) {
+    throw new Error('flatdb(): "close" is reserved for db.close(); rename the collection')
+  }
+
   const result = {} as any
-  const unwatchers: (() => void)[] = []
+  const watchers: Promise<() => void>[] = []
 
   if (collections) {
     for (const [name, def] of Object.entries(collections)) {
@@ -64,18 +76,26 @@ export function flatdb<T extends Record<string, CollectionDefinition>>(
     // Wire up fs.watch if enabled
     if (options?.watch && adapter.watch) {
       for (const [name, col] of Object.entries(result) as [string, Collection | PathCollection][]) {
-        // Ensure directory exists before watching
-        adapter.mkdir(name).then(() => {
-          const unsub = adapter.watch!(name, () => {
+        // The directory has to exist before it can be watched
+        const watcher = adapter.mkdir(name).then(() =>
+          adapter.watch!(name, () => {
             // Invalidate index cache and re-notify subscribers
             ;(col as any).indexCache = null
             ;(col as any).emitter?.emit()
-          })
-          unwatchers.push(unsub)
-        })
+          }),
+        )
+        watcher.catch(error => console.error(`[flatdb] could not watch "${name}"`, error))
+        watchers.push(watcher)
       }
     }
   }
 
-  return result as CollectionMap<T>
+  result.close = async () => {
+    for (const watcher of await Promise.allSettled(watchers.splice(0))) {
+      if (watcher.status === 'fulfilled') watcher.value()
+    }
+    await adapter.close?.()
+  }
+
+  return result as FlatDb<T>
 }

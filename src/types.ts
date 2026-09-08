@@ -14,6 +14,8 @@ export interface StorageAdapter {
   mkdir(dir: string): Promise<void>
   move(from: string, to: string): Promise<void>
   watch?(dir: string, cb: (event: WatchEvent) => void): () => void
+  /** Releases connections or handles the adapter holds. Called by `db.close()`. */
+  close?(): Promise<void>
 }
 
 export interface CollectionOptions {
