@@ -3,29 +3,25 @@
   "version": "0.1.0",
   "description": "Flat-file document database for TypeScript/JavaScript",
   "type": "module",
-  "main": "./dist/index.cjs",
+  "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": "./dist/index.js"
     },
     "./svelte": {
       "types": "./dist/adapters/svelte.d.ts",
-      "import": "./dist/svelte.js",
-      "require": "./dist/svelte.cjs"
+      "import": "./dist/svelte.js"
     },
     "./vue": {
       "types": "./dist/adapters/vue.d.ts",
-      "import": "./dist/vue.js",
-      "require": "./dist/vue.cjs"
+      "import": "./dist/vue.js"
     },
     "./solid": {
       "types": "./dist/adapters/solid.d.ts",
-      "import": "./dist/solid.js",
-      "require": "./dist/solid.cjs"
+      "import": "./dist/solid.js"
     }
   },
   "files": [

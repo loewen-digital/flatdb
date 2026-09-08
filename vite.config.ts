@@ -11,7 +11,7 @@ export default defineConfig({
         vue: resolve(__dirname, 'src/adapters/vue.ts'),
         solid: resolve(__dirname, 'src/adapters/solid.ts'),
       },
-      formats: ['es', 'cjs'],
+      formats: ['es'],
     },
     rollupOptions: {
       external: [
