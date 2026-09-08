@@ -41,7 +41,7 @@ jobs:
       - uses: actions/setup-node@v5
         if: hashFiles('package-lock.json') != ''
         with:
-          node-version: 22
+          node-version-file: package.json
           cache: npm
       - if: hashFiles('package-lock.json') != ''
         run: npm ci

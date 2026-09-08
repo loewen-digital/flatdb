@@ -7,6 +7,8 @@ is the topmost released one here.
 
 ## Unreleased
 
+- Node 24 is the required version (`engines.node` in `package.json`); CI, deploy and the agent workflow read it from there.
+
 ## v0.2.0 · 2026-09-08 · Cloudflare R2, ESM only, a concurrency-safe index
 
 - First release on npm. The April build is recorded below as v0.1.0, so the fixes in this release read against the state they fix; it was never published. Decision: [0009](docs/decisions/0009-retroactive-v0-1-0.md).
