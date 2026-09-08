@@ -26,7 +26,7 @@ Flat-file document database for TypeScript/JavaScript.
 Two ways to be here; check `GITHUB_ACTIONS`.
 
 - **Set:** you run unattended via `.github/workflows/agent.yml` as `claude[bot]`. Nobody answers questions. Follow **Issue** and **Review** below: branch, PR, never `main`.
-- **Not set:** you are in a local session with Eddy (Claude Code or Codex). Work on `main` and push after every green validation (the commands in step 4) while the version in `package.json` is below 1.0; a branch only when Eddy asks for one. **Always**, **Changelog** and **Writing for humans** apply to you as well.
+- **Not set:** you are in a local session with Eddy (Claude Code or Codex). Work on `main` and push after every green validation (the commands in step 4) while the version in `package.json` is below 1.0; a branch only when Eddy asks for one. **Always**, **Changelog** and **Writing for humans** apply to you as well. The loop is not your topic: do not look for `ready` issues, do not report whether the loop runs, do not mention labels or the cockpit unless Eddy asks. Work as if the loop did not exist.
 
 **Issue** (label `ready`):
 
