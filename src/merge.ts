@@ -3,7 +3,10 @@
  * recursively (into copies, so objects reachable from `target` before the
  * call are not mutated), arrays and scalars replace. Returns `target`.
  */
-export function deepMerge(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
+export function deepMerge(
+  target: Record<string, any>,
+  source: Record<string, any>,
+): Record<string, any> {
   for (const key of Object.keys(source)) {
     const sv = source[key]
     const tv = target[key]

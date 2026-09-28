@@ -73,7 +73,9 @@ export class R2Adapter implements StorageAdapter {
     return trimmed ? `${this.prefix}${trimmed}/` : this.prefix
   }
 
-  private async *pages(options: Omit<R2ListOptionsLike, 'cursor'>): AsyncGenerator<R2ListResultLike> {
+  private async *pages(
+    options: Omit<R2ListOptionsLike, 'cursor'>,
+  ): AsyncGenerator<R2ListResultLike> {
     let cursor: string | undefined
     do {
       const page = await this.bucket.list({ ...options, cursor })

@@ -29,9 +29,13 @@ export function liveQuery<T>(
 ): Readable<T[]> {
   return {
     subscribe(cb: (value: T[]) => void) {
-      return collection.live(filter, (results: any[]) => {
-        cb(results as T[])
-      }, onError)
+      return collection.live(
+        filter,
+        (results: any[]) => {
+          cb(results as T[])
+        },
+        onError,
+      )
     },
   }
 }

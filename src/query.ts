@@ -33,19 +33,30 @@ function matchesOperator(value: any, operator: string, operand: any): boolean {
       if (Array.isArray(value)) return value.includes(operand)
       return false
     case '$containsAll':
-      return Array.isArray(value) && Array.isArray(operand) && operand.every((v: any) => value.includes(v))
+      return (
+        Array.isArray(value) &&
+        Array.isArray(operand) &&
+        operand.every((v: any) => value.includes(v))
+      )
     case '$containsAny':
-      return Array.isArray(value) && Array.isArray(operand) && operand.some((v: any) => value.includes(v))
+      return (
+        Array.isArray(value) &&
+        Array.isArray(operand) &&
+        operand.some((v: any) => value.includes(v))
+      )
     case '$startsWith':
       return typeof value === 'string' && value.startsWith(operand)
     case '$endsWith':
       return typeof value === 'string' && value.endsWith(operand)
-    case '$regex':
+    case '$regex': {
       if (typeof value !== 'string') return false
       const regex = operand instanceof RegExp ? operand : new RegExp(operand)
       return regex.test(value)
+    }
     case '$between':
-      return Array.isArray(operand) && operand.length === 2 && value >= operand[0] && value <= operand[1]
+      return (
+        Array.isArray(operand) && operand.length === 2 && value >= operand[0] && value <= operand[1]
+      )
     default:
       return false
   }
@@ -54,14 +65,20 @@ function matchesOperator(value: any, operator: string, operand: any): boolean {
 function matchesCondition(doc: any, key: string, condition: any): boolean {
   const value = getNestedValue(doc, key)
 
-  if (condition === null || condition === undefined || typeof condition !== 'object' || condition instanceof RegExp || Array.isArray(condition)) {
+  if (
+    condition === null ||
+    condition === undefined ||
+    typeof condition !== 'object' ||
+    condition instanceof RegExp ||
+    Array.isArray(condition)
+  ) {
     return value === condition
   }
 
   // Check if condition is an operator object (keys start with $)
   const keys = Object.keys(condition)
   if (keys.length > 0 && keys[0].startsWith('$')) {
-    return keys.every(op => matchesOperator(value, op, condition[op]))
+    return keys.every((op) => matchesOperator(value, op, condition[op]))
   }
 
   // Plain value equality
@@ -72,12 +89,12 @@ export function matchesFilter(doc: any, filter: QueryFilter): boolean {
   for (const key of Object.keys(filter)) {
     if (key === '$or') {
       const conditions = filter.$or as QueryFilter[]
-      if (!conditions.some(cond => matchesFilter(doc, cond))) return false
+      if (!conditions.some((cond) => matchesFilter(doc, cond))) return false
       continue
     }
     if (key === '$and') {
       const conditions = filter.$and as QueryFilter[]
-      if (!conditions.every(cond => matchesFilter(doc, cond))) return false
+      if (!conditions.every((cond) => matchesFilter(doc, cond))) return false
       continue
     }
     if (key === '$not') {
@@ -119,7 +136,7 @@ export function applyOptions<T extends Record<string, any>>(docs: T[], options: 
 
   if (options.select) {
     const fields = options.select
-    result = result.map(doc => {
+    result = result.map((doc) => {
       const picked: any = {}
       if ('_id' in doc) picked._id = doc._id
       for (const f of fields) {

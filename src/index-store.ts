@@ -14,7 +14,10 @@ export class IndexStore<T> {
   private cache: Record<string, T> | null = null
   private version: string | null = null
 
-  constructor(private adapter: StorageAdapter, private path: string) {}
+  constructor(
+    private adapter: StorageAdapter,
+    private path: string,
+  ) {}
 
   /** Forget the cached copy; the next access reads from storage. */
   invalidate(): void {
@@ -55,12 +58,14 @@ export class IndexStore<T> {
       }
       this.invalidate()
     }
-    throw new Error(`${this.path}: another writer kept changing the index (${MAX_ATTEMPTS} attempts)`)
+    throw new Error(
+      `${this.path}: another writer kept changing the index (${MAX_ATTEMPTS} attempts)`,
+    )
   }
 
   /** Replaces the whole index, e.g. after a rebuild. */
   async replace(index: Record<string, T>): Promise<void> {
-    await this.commit(current => {
+    await this.commit((current) => {
       for (const key of Object.keys(current)) delete current[key]
       Object.assign(current, index)
     })

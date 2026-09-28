@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vite-plus/test'
 import { z } from 'zod'
 import fs from 'fs/promises'
 import path from 'path'
@@ -31,7 +31,7 @@ describe('Reactivity — Collection (auto mode)', () => {
       })
 
       // Wait for async initial emit
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
       expect(results.length).toBeGreaterThanOrEqual(1)
       expect(results[0]).toHaveLength(1)
     })
@@ -44,11 +44,11 @@ describe('Reactivity — Collection (auto mode)', () => {
         results.push(docs)
       })
 
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
       expect(results[0]).toHaveLength(0) // initially empty
 
       await col.insert({ text: 'A' })
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
 
       expect(results.length).toBeGreaterThanOrEqual(2)
       expect(results[results.length - 1]).toHaveLength(1)
@@ -63,11 +63,11 @@ describe('Reactivity — Collection (auto mode)', () => {
         results.push(docs)
       })
 
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
       expect(results[0]).toHaveLength(0)
 
       await col.update({ _id: todo._id }, { done: true })
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
 
       expect(results[results.length - 1]).toHaveLength(1)
     })
@@ -81,11 +81,11 @@ describe('Reactivity — Collection (auto mode)', () => {
         results.push(docs)
       })
 
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
       expect(results[0]).toHaveLength(1)
 
       await col.delete({ _id: todo._id })
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
 
       expect(results[results.length - 1]).toHaveLength(0)
     })
@@ -98,11 +98,11 @@ describe('Reactivity — Collection (auto mode)', () => {
         results.push(docs)
       })
 
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
       unsub()
 
       await col.insert({ text: 'A' })
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
 
       // Should only have the initial emit
       expect(results).toHaveLength(1)
@@ -119,7 +119,7 @@ describe('Reactivity — Collection (auto mode)', () => {
         results.push(doc)
       })
 
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
       expect(results[0]).not.toBeNull()
       expect(results[0].name).toBe('Max')
     })
@@ -133,9 +133,9 @@ describe('Reactivity — Collection (auto mode)', () => {
         results.push(doc)
       })
 
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
       await col.update({ _id: user._id }, { name: 'Maximilian' })
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
 
       expect(results[results.length - 1].name).toBe('Maximilian')
     })
@@ -149,9 +149,9 @@ describe('Reactivity — Collection (auto mode)', () => {
         results.push(doc)
       })
 
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
       await col.delete({ _id: user._id })
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
 
       expect(results[results.length - 1]).toBeNull()
     })
@@ -214,11 +214,11 @@ describe('Reactivity — PathCollection', () => {
         results.push(docs)
       })
 
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
       expect(results[0]).toHaveLength(0)
 
       await col.insert('about', { title: 'About' })
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
 
       expect(results[results.length - 1]).toHaveLength(1)
     })
@@ -232,17 +232,17 @@ describe('Reactivity — PathCollection', () => {
         results.push(docs)
       })
 
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
       expect(results[0]).toHaveLength(1)
 
       await col.insert('other', { title: 'Other' }) // not under blog/
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
 
       // Still 1 under blog/*
       expect(results[results.length - 1]).toHaveLength(1)
 
       await col.insert('blog/b', { title: 'B' })
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
 
       expect(results[results.length - 1]).toHaveLength(2)
     })
@@ -258,11 +258,11 @@ describe('Reactivity — PathCollection', () => {
         results.push(doc)
       })
 
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
       expect(results[0]!.title).toBe('About')
 
       await col.update('about', { title: 'About Us' })
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
 
       expect(results[results.length - 1]!.title).toBe('About Us')
     })
@@ -276,9 +276,9 @@ describe('Reactivity — PathCollection', () => {
         results.push(doc)
       })
 
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
       await col.delete('about')
-      await new Promise(r => setTimeout(r, 50))
+      await new Promise((r) => setTimeout(r, 50))
 
       expect(results[results.length - 1]).toBeNull()
     })

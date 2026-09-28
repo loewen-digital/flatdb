@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vite-plus/test'
 import 'fake-indexeddb/auto'
 import { IndexedDBAdapter } from '../src/indexeddb-adapter.js'
 
@@ -117,7 +117,6 @@ describe('IndexedDBAdapter', () => {
       expect(await adapter.read('x.json')).toBe('4')
     })
   })
-
 })
 
 describe('IndexedDBAdapter with Collection', () => {

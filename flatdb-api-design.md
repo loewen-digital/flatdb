@@ -6,7 +6,7 @@
 
 A schema-optional document database using the filesystem as storage. One file per document, folders as structure. No server, no migrations, zero-config possible. Optimized for coding agents, TypeScript-first, reactive.
 
------
+---
 
 ## Core Principles
 
@@ -17,7 +17,7 @@ A schema-optional document database using the filesystem as storage. One file pe
 - **Agent-friendly.** An agent can read/write files directly — the DB picks it up.
 - **TypeScript-first.** Full autocomplete and type inference from the schema.
 
------
+---
 
 ## Init
 
@@ -37,7 +37,7 @@ const db = flatdb('./data', {
       publishedAt: z.number().optional(),
       author: ref('users'),
     }),
-    { mode: 'path' }
+    { mode: 'path' },
   ),
 
   categories: collection(
@@ -46,7 +46,7 @@ const db = flatdb('./data', {
       description: z.string(),
       icon: z.string().optional(),
     }),
-    { mode: 'path' }
+    { mode: 'path' },
   ),
 
   users: collection(
@@ -60,7 +60,7 @@ const db = flatdb('./data', {
         })
         .optional(),
     }),
-    { mode: 'auto' }
+    { mode: 'auto' },
   ),
 })
 ```
@@ -75,7 +75,7 @@ const db = flatdb('./data')
 const db = flatdb('idb://myapp')
 ```
 
------
+---
 
 ## Collection Modes
 
@@ -131,7 +131,7 @@ data/users/
 | `folder/child.json` | Document with path `"folder/child"`          |
 | `_index.json`       | Query index (auto-generated, do not edit)    |
 
------
+---
 
 ## CRUD — Path Mode
 
@@ -164,7 +164,7 @@ const published = await db.pages.find(
     $path: 'blog/*',
     publishedAt: { $ne: null },
   },
-  { sort: { publishedAt: -1 }, limit: 10 }
+  { sort: { publishedAt: -1 }, limit: 10 },
 )
 ```
 
@@ -218,7 +218,7 @@ await db.pages.demote('tech')
 // tech/index.json → tech.json
 ```
 
------
+---
 
 ## CRUD — Auto Mode
 
@@ -268,7 +268,7 @@ await db.users.deleteMany({ active: false })
 const n = await db.users.count({ role: 'admin' })
 ```
 
------
+---
 
 ## Query Operators
 
@@ -315,15 +315,15 @@ const n = await db.users.count({ role: 'admin' })
 
 ```ts
 db.todos.find(filter, {
-  sort: { createdAt: -1 },         // -1 = desc, 1 = asc
+  sort: { createdAt: -1 }, // -1 = desc, 1 = asc
   limit: 10,
   skip: 20,
-  select: ['title', 'status'],     // specific fields only
-  populate: ['author'],            // resolve references
+  select: ['title', 'status'], // specific fields only
+  populate: ['author'], // resolve references
 })
 ```
 
------
+---
 
 ## References
 
@@ -332,10 +332,10 @@ db.todos.find(filter, {
 ```ts
 const Todo = z.object({
   text: z.string(),
-  assignee: ref('users'),                    // exactly 1 user
-  watchers: ref('users').array(),            // multiple users
-  project: ref('projects').optional(),       // optional
-  category: ref('categories'),              // to path-based collection
+  assignee: ref('users'), // exactly 1 user
+  watchers: ref('users').array(), // multiple users
+  project: ref('projects').optional(), // optional
+  category: ref('categories'), // to path-based collection
 })
 ```
 
@@ -347,7 +347,7 @@ await db.todos.insert('fix-bug', {
   assignee: 'abc123',
   watchers: ['abc123', 'def456'],
   project: 'proj_01',
-  category: 'dev/frontend',       // path for path-based collections
+  category: 'dev/frontend', // path for path-based collections
 })
 ```
 
@@ -388,7 +388,7 @@ const todo = await db.todos.get('fix-bug', {
 }
 ```
 
------
+---
 
 ## Schema Evolution (No Migrations)
 
@@ -399,8 +399,8 @@ const todo = await db.todos.get('fix-bug', {
 const Todo = z.object({
   text: z.string(),
   done: z.boolean(),
-  priority: z.number().optional(),       // old docs → undefined
-  createdAt: z.number().default(0),      // old docs → 0
+  priority: z.number().optional(), // old docs → undefined
+  createdAt: z.number().default(0), // old docs → 0
 })
 ```
 
@@ -425,7 +425,7 @@ const Todo = collection(
       ...doc,
       status: doc.done ? 'done' : 'todo',
     }),
-  }
+  },
 )
 ```
 
@@ -443,12 +443,12 @@ const Todo = collection(
 
 ```ts
 collection(schema, {
-  unknownFields: 'strip',      // 'strip' | 'passthrough' | 'error'
-  validateOnRead: true,         // Default: true
+  unknownFields: 'strip', // 'strip' | 'passthrough' | 'error'
+  validateOnRead: true, // Default: true
 })
 ```
 
------
+---
 
 ## Reactivity
 
@@ -490,7 +490,7 @@ db.pages.liveByPath('blog/my-post', (page) => {
 
 Collection-level: on every write, all subscribers of the collection are notified and re-evaluate their query. Simple, performant enough for most use cases.
 
------
+---
 
 ## Indexing
 
@@ -516,14 +516,14 @@ data/users/
 - Can be rebuilt from individual files at any time: `db.users.rebuildIndex()`
 - For path-mode collections, the index also contains the path hierarchy.
 
------
+---
 
 ## File Watching (Agent Compatibility)
 
 ```ts
 // Optional: DB watches the filesystem
 const db = flatdb('./data', schema, {
-  watch: true,    // Default: false
+  watch: true, // Default: false
 })
 ```
 
@@ -536,7 +536,7 @@ When enabled:
 
 This means: **Agents don't need the DB API.** They can simply read and write files.
 
------
+---
 
 ## Storage Adapter Interface
 
@@ -564,21 +564,21 @@ Every runtime implements this interface. The entire core (Collections, Queries, 
 - **External Watch** (`watch` in the StorageAdapter) detects changes that happen **outside the API** (e.g. an agent edits JSON files directly). Only relevant and useful on filesystem runtimes. On Browser/Edge/Memory there is no external access → not applicable.
 - **Conditional writes** (`readVersioned`/`writeIf`) let the core write `_index.json` as a compare-and-swap, so concurrent writers keep each other's entries. R2 (etag), IndexedDB (one transaction) and Memory implement it; FsAdapter does not, there the last writer wins. `close` releases connections (IndexedDB) and is called by `db.close()`.
 
------
+---
 
 ## Runtimes & Platforms
 
 ### Overview
 
-| Runtime            | Adapter               | Storage    | Reactivity | Ext. Watch       | Priority            |
-| ------------------ | --------------------- | ---------- | ---------- | ---------------- | ------------------- |
-| Node.js            | `FsAdapter`           | Filesystem | ✅          | ✅ `fs.watch`     | Phase 1             |
-| Bun                | `FsAdapter`           | Filesystem | ✅          | ✅ `fs.watch`     | Phase 1 (same code) |
-| Deno               | `FsAdapter`           | Filesystem | ✅          | ✅ `Deno.watchFs` | Phase 1 (same code) |
-| Browser            | `IndexedDBAdapter`    | IndexedDB  | ✅          | — (n/a)          | Phase 2             |
-| Tests / SSR        | `MemoryAdapter`       | RAM        | ✅          | — (n/a)          | Phase 3             |
-| Cloudflare Workers | `R2Adapter`           | R2         | ✅          | — (n/a)          | Phase 4 (done)      |
-| Vercel Edge        | `VercelKVAdapter`     | Vercel KV  | ✅          | — (n/a)          | Phase 4 (on demand) |
+| Runtime            | Adapter            | Storage    | Reactivity | Ext. Watch        | Priority            |
+| ------------------ | ------------------ | ---------- | ---------- | ----------------- | ------------------- |
+| Node.js            | `FsAdapter`        | Filesystem | ✅         | ✅ `fs.watch`     | Phase 1             |
+| Bun                | `FsAdapter`        | Filesystem | ✅         | ✅ `fs.watch`     | Phase 1 (same code) |
+| Deno               | `FsAdapter`        | Filesystem | ✅         | ✅ `Deno.watchFs` | Phase 1 (same code) |
+| Browser            | `IndexedDBAdapter` | IndexedDB  | ✅         | — (n/a)           | Phase 2             |
+| Tests / SSR        | `MemoryAdapter`    | RAM        | ✅         | — (n/a)           | Phase 3             |
+| Cloudflare Workers | `R2Adapter`        | R2         | ✅         | — (n/a)           | Phase 4 (done)      |
+| Vercel Edge        | `VercelKVAdapter`  | Vercel KV  | ✅         | — (n/a)           | Phase 4 (on demand) |
 
 ### Node / Bun / Deno
 
@@ -653,7 +653,7 @@ Phase 3:  MemoryAdapter      → Tests, SSR
 Phase 4:  R2Adapter          → Cloudflare Workers (Vercel on demand)
 ```
 
------
+---
 
 ## Full API Overview
 
@@ -687,7 +687,7 @@ db.collection.demote(path)                 → Promise<void>
 db.collection.tree(path?)                  → Promise<TreeNode>
 ```
 
------
+---
 
 ## Architecture Overview
 
@@ -708,7 +708,7 @@ db.collection.tree(path?)                  → Promise<TreeNode>
 - **Core:** Query engine, schema validation, index management, reactivity. Framework-agnostic.
 - **Framework Adapters:** Thin wrappers (~30-50 lines) that translate core reactivity into framework-specific primitives.
 
------
+---
 
 ## Framework Adapters
 
@@ -766,7 +766,7 @@ function TodoList() {
   // Returns a Solid Signal
   const todos = createLiveQuery(() => db.todos.find({ done: false }))
 
-  return <For each={todos()}>{todo => <p>{todo.text}</p>}</For>
+  return <For each={todos()}>{(todo) => <p>{todo.text}</p>}</For>
 }
 ```
 
@@ -780,7 +780,7 @@ function TodoList() {
   // Uses useSyncExternalStore under the hood
   const todos = useLiveQuery(() => db.todos.find({ done: false }))
 
-  return todos.map(todo => <p key={todo._id}>{todo.text}</p>)
+  return todos.map((todo) => <p key={todo._id}>{todo.text}</p>)
 }
 ```
 
@@ -789,8 +789,7 @@ function TodoList() {
 ```ts
 // Without framework — callback or AsyncIterator
 const unsub = db.todos.live({ done: false }, (results) => {
-  document.getElementById('list').innerHTML =
-    results.map(t => `<p>${t.text}</p>`).join('')
+  document.getElementById('list').innerHTML = results.map((t) => `<p>${t.text}</p>`).join('')
 })
 ```
 
@@ -813,7 +812,7 @@ function liveQuery(queryFn) {
 }
 ```
 
------
+---
 
 ## Open Items / Next Steps
 

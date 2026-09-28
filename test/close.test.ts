@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vite-plus/test'
 import 'fake-indexeddb/auto'
 import fs from 'fs/promises'
 import path from 'path'
@@ -7,7 +7,7 @@ import { flatdb, collection } from '../src/flatdb.js'
 import { MemoryAdapter } from '../src/memory-adapter.js'
 import { IndexedDBAdapter } from '../src/indexeddb-adapter.js'
 
-const wait = (ms: number) => new Promise(r => setTimeout(r, ms))
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 describe('db.close()', () => {
   let tmpDir: string
@@ -32,7 +32,10 @@ describe('db.close()', () => {
     await wait(100)
     expect(results).toHaveLength(1)
 
-    await fs.writeFile(path.join(tmpDir, 'notes', 'external.json'), JSON.stringify({ text: 'external' }))
+    await fs.writeFile(
+      path.join(tmpDir, 'notes', 'external.json'),
+      JSON.stringify({ text: 'external' }),
+    )
     await wait(300)
     expect(results).toHaveLength(1)
     unsub()
@@ -47,7 +50,10 @@ describe('db.close()', () => {
     const unsub = (db.notes as any).live((docs: any[]) => results.push(docs))
     await wait(100)
 
-    await fs.writeFile(path.join(tmpDir, 'notes', 'external.json'), JSON.stringify({ text: 'external' }))
+    await fs.writeFile(
+      path.join(tmpDir, 'notes', 'external.json'),
+      JSON.stringify({ text: 'external' }),
+    )
     await wait(300)
     expect(results).toHaveLength(1)
     unsub()

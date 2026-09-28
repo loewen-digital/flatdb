@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vite-plus/test'
 import { FsAdapter } from '../src/fs-adapter.js'
 import fs from 'fs/promises'
 import path from 'path'

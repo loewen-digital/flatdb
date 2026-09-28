@@ -8,7 +8,8 @@ Flat-file document database for TypeScript/JavaScript.
 
 - Full API design: see `flatdb-api-design.md`
 - Package: `@loewen-digital/flatdb`
-- Tooling: npm (no yarn/pnpm)
+- Tooling: npm (no yarn/pnpm). Toolchain is Vite+ (`vite-plus`), configured in `vite.config.ts`: `vp pack` builds the library (tsdown), `vp check` formats, lints and type-checks `src/`, `vp test` runs Vitest (tests import from `vite-plus/test`). Never add ESLint, Prettier, tsup or a second test runner
+- Commands: `npm run check`, `npm test`, `npm run build`; `npm run format` fixes formatting and autofixable lint findings
 - Format: JSON (fixed, not configurable)
 - Schema: Zod
 - No React
@@ -33,7 +34,7 @@ Two ways to be here; check `GITHUB_ACTIONS`.
 1. Read the issue: `gh issue view <n> --json title,body,labels,comments`. If acceptance criteria are missing: comment the concrete question, add label `needs-human`, remove `ready`, stop.
 2. Branch `claude/issue-<n>-<slug>` from the default branch. One issue, one branch, one PR.
 3. Implement following the rules above. Acceptance criteria are binding; a solution proposed in the issue is not. Build what fits this project and its conventions, even where that differs from the proposal, and explain every difference in the PR under "Deviations from the issue". If the need does not belong in this project: comment why, label `needs-human`, remove `ready`, stop. If something is missing in one of our own libraries (fullstack, flatdb, sveltekit-ai-orchestrator, element-js, element-js-ssr-renderer, element-library): open an issue there (`gh issue create --repo <owner/lib>`) that states the need and the context here, with at most a non-binding proposal; add the smallest workaround marked `// UPSTREAM: <issue-url>`, keep going. Never wait for upstream.
-4. `npm test && npm run build` must pass. After three failed attempts: open a draft PR, label `needs-human`, stop.
+4. `npm run check && npm test && npm run build` must pass. After three failed attempts: open a draft PR, label `needs-human`, stop.
 5. Review your own diff: security, dead code, error handling, accessibility.
 6. Open the PR (`gh pr create`) in the PR format below, with `Closes #<n>`. Do not post `@codex review`: Codex ignores comments from bots. Eddy requests the review.
 

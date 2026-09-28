@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from 'vite-plus/test'
 import 'fake-indexeddb/auto'
 import { MemoryAdapter } from '../src/memory-adapter.js'
 import { IndexedDBAdapter } from '../src/indexeddb-adapter.js'
@@ -32,7 +32,7 @@ describe.each(adapters)('concurrent index writes on %s', (_name, make) => {
   it('interleaved inserts keep every document', async () => {
     const adapter = make()
     const writers = [0, 1, 2, 3].map(() => new Collection(adapter, 'items'))
-    await Promise.all(writers.map(w => w.find()))
+    await Promise.all(writers.map((w) => w.find()))
 
     await Promise.all(writers.map((w, i) => w.insert({ n: i })))
 
@@ -51,7 +51,7 @@ describe.each(adapters)('concurrent index writes on %s', (_name, make) => {
     expect(await b.update({ _id: x._id }, { name: 'X2' })).toBe(1)
     expect(await b.delete({ _id: y._id })).toBe(1)
 
-    const names = (await new Collection(adapter, 'users').find()).map(d => d.name).sort()
+    const names = (await new Collection(adapter, 'users').find()).map((d) => d.name).sort()
     expect(names).toEqual(['X2', 'Z'])
   })
 
@@ -106,9 +106,9 @@ describe('index write conflicts', () => {
     await a.insert({ name: 'A' })
     await b.insert({ name: 'B' })
 
-    const conditional = bucket.calls.filter(c => c === 'put users/_index.json onlyIf')
+    const conditional = bucket.calls.filter((c) => c === 'put users/_index.json onlyIf')
     expect(conditional).toHaveLength(3) // a: create; b: create fails, then compare-and-swap
-    expect(bucket.calls.filter(c => c === 'put users/_index.json')).toHaveLength(0)
+    expect(bucket.calls.filter((c) => c === 'put users/_index.json')).toHaveLength(0)
     expect(await new Collection(new R2Adapter({ bucket }), 'users').count()).toBe(2)
   })
 })

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vite-plus/test'
 import { z } from 'zod'
 import fs from 'fs/promises'
 import path from 'path'
@@ -83,10 +83,12 @@ describe('refs integration via flatdb()', () => {
   it('stores refs as ref:collection/id on disk', async () => {
     const db = flatdb(tmpDir, {
       users: collection(z.object({ name: z.string() })),
-      todos: collection(z.object({
-        text: z.string(),
-        assignee: ref('users'),
-      })),
+      todos: collection(
+        z.object({
+          text: z.string(),
+          assignee: ref('users'),
+        }),
+      ),
     })
 
     const user = await db.users.insert({ name: 'Max' })
@@ -102,10 +104,12 @@ describe('refs integration via flatdb()', () => {
   it('reads back plain ids by default', async () => {
     const db = flatdb(tmpDir, {
       users: collection(z.object({ name: z.string() })),
-      todos: collection(z.object({
-        text: z.string(),
-        assignee: ref('users'),
-      })),
+      todos: collection(
+        z.object({
+          text: z.string(),
+          assignee: ref('users'),
+        }),
+      ),
     })
 
     const user = await db.users.insert({ name: 'Max' })
@@ -118,10 +122,12 @@ describe('refs integration via flatdb()', () => {
   it('populate resolves refs to full documents', async () => {
     const db = flatdb(tmpDir, {
       users: collection(z.object({ name: z.string() })),
-      todos: collection(z.object({
-        text: z.string(),
-        assignee: ref('users'),
-      })),
+      todos: collection(
+        z.object({
+          text: z.string(),
+          assignee: ref('users'),
+        }),
+      ),
     })
 
     const user = await db.users.insert({ name: 'Max' })
@@ -137,10 +143,12 @@ describe('refs integration via flatdb()', () => {
   it('populate resolves array refs', async () => {
     const db = flatdb(tmpDir, {
       users: collection(z.object({ name: z.string() })),
-      todos: collection(z.object({
-        text: z.string(),
-        watchers: ref('users').array(),
-      })),
+      todos: collection(
+        z.object({
+          text: z.string(),
+          watchers: ref('users').array(),
+        }),
+      ),
     })
 
     const alice = await db.users.insert({ name: 'Alice' })
@@ -159,10 +167,12 @@ describe('refs integration via flatdb()', () => {
   it('find/findOne still works with ref fields', async () => {
     const db = flatdb(tmpDir, {
       users: collection(z.object({ name: z.string() })),
-      todos: collection(z.object({
-        text: z.string(),
-        assignee: ref('users'),
-      })),
+      todos: collection(
+        z.object({
+          text: z.string(),
+          assignee: ref('users'),
+        }),
+      ),
     })
 
     const user = await db.users.insert({ name: 'Max' })
@@ -176,10 +186,12 @@ describe('refs integration via flatdb()', () => {
   it('update works with ref fields', async () => {
     const db = flatdb(tmpDir, {
       users: collection(z.object({ name: z.string() })),
-      todos: collection(z.object({
-        text: z.string(),
-        assignee: ref('users'),
-      })),
+      todos: collection(
+        z.object({
+          text: z.string(),
+          assignee: ref('users'),
+        }),
+      ),
     })
 
     const max = await db.users.insert({ name: 'Max' })

@@ -10,7 +10,10 @@ export interface FlatDbOptions {
   watch?: boolean
 }
 
-export function collection(schema?: ZodType, options: CollectionOptions = {}): CollectionDefinition {
+export function collection(
+  schema?: ZodType,
+  options: CollectionOptions = {},
+): CollectionDefinition {
   return { schema, options }
 }
 
@@ -70,7 +73,7 @@ export function flatdb<T extends Record<string, CollectionDefinition>>(
     }
 
     for (const col of Object.values(result)) {
-      (col as any)._resolveRef = resolver
+      ;(col as any)._resolveRef = resolver
     }
 
     // Wire up fs.watch if enabled
@@ -84,7 +87,7 @@ export function flatdb<T extends Record<string, CollectionDefinition>>(
             ;(col as any).emitter.emit()
           }),
         )
-        watcher.catch(error => console.error(`[flatdb] could not watch "${name}"`, error))
+        watcher.catch((error) => console.error(`[flatdb] could not watch "${name}"`, error))
         watchers.push(watcher)
       }
     }

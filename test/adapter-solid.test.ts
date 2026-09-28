@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vite-plus/test'
 
 // Mock SolidJS primitives before importing the adapter
 let cleanupFn: (() => void) | null = null
@@ -40,11 +40,11 @@ describe('Solid adapter: createLiveQuery()', () => {
   it('updates signal when data changes', async () => {
     const todos = createLiveQuery(col)
 
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     expect(todos()).toHaveLength(0)
 
     await col.insert({ text: 'A' })
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     expect(todos()).toHaveLength(1)
   })
 
@@ -52,7 +52,7 @@ describe('Solid adapter: createLiveQuery()', () => {
     await col.insert({ text: 'A', done: true })
 
     const todos = createLiveQuery(col, { done: false })
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
 
     expect(todos()).toHaveLength(0)
   })
@@ -65,11 +65,11 @@ describe('Solid adapter: createLiveQuery()', () => {
   it('cleanup stops updates', async () => {
     const todos = createLiveQuery(col)
 
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     cleanupFn!()
 
     await col.insert({ text: 'A' })
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
 
     expect(todos()).toHaveLength(0)
   })
@@ -78,10 +78,10 @@ describe('Solid adapter: createLiveQuery()', () => {
     const strict = new Collection(adapter, 'strict', z.object({ text: z.string() }))
     await adapter.write('strict/_index.json', JSON.stringify({ x: { text: 1 } }))
     const errors: unknown[] = []
-    createLiveQuery(strict, {}, e => errors.push(e))
+    createLiveQuery(strict, {}, (e) => errors.push(e))
     const unsub = () => {}
 
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     expect(errors).toHaveLength(1)
     expect(errors[0]).toBeInstanceOf(z.ZodError)
     unsub()

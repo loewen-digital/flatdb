@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vite-plus/test'
 import { R2Adapter } from '../src/r2-adapter.js'
 import { FakeR2Bucket } from './fake-r2-bucket.js'
 
@@ -90,7 +90,7 @@ describe('R2Adapter', () => {
     const entries = await adapter.list('dir')
 
     expect(entries.sort()).toEqual(['a.json', 'b.json', 'c.json', 'd.json', 'e.json', 'sub'])
-    expect(bucket.calls.filter(c => c.startsWith('list ')).length).toBe(3)
+    expect(bucket.calls.filter((c) => c.startsWith('list ')).length).toBe(3)
   })
 
   it('mkdir is a no-op', async () => {
@@ -121,8 +121,13 @@ describe('R2Adapter', () => {
     bucket.calls.length = 0
     await adapter.move('dir', 'newdir')
 
-    const writes = bucket.calls.filter(c => c.startsWith('put ') || c.startsWith('delete '))
-    expect(writes).toEqual(['put newdir/a.json', 'put newdir/b.json', 'delete dir/a.json', 'delete dir/b.json'])
+    const writes = bucket.calls.filter((c) => c.startsWith('put ') || c.startsWith('delete '))
+    expect(writes).toEqual([
+      'put newdir/a.json',
+      'put newdir/b.json',
+      'delete dir/a.json',
+      'delete dir/b.json',
+    ])
   })
 
   it('move is silent for a missing source', async () => {

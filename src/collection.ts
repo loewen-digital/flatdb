@@ -2,7 +2,14 @@ import { nanoid } from 'nanoid'
 import type { ZodType } from 'zod'
 import type { StorageAdapter, CollectionOptions, QueryFilter, QueryOptions } from './types.js'
 import { matchesFilter, applyOptions } from './query.js'
-import { extractRefMeta, serializeRefs, deserializeRefs, populateDoc, type RefMeta, type RefResolver } from './ref.js'
+import {
+  extractRefMeta,
+  serializeRefs,
+  deserializeRefs,
+  populateDoc,
+  type RefMeta,
+  type RefResolver,
+} from './ref.js'
 import { EventEmitter } from './emitter.js'
 import { liveQuery, watchQuery, type LiveErrorHandler } from './live.js'
 import { deepMerge } from './merge.js'
@@ -118,7 +125,9 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
     await this.writeDoc(id, validated)
 
     const stored = this.serializeDoc(validated) as T
-    await this.index.commit(index => { index[id] = stored })
+    await this.index.commit((index) => {
+      index[id] = stored
+    })
     this.notify()
 
     return { _id: id, ...validated }
@@ -136,7 +145,7 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
       results.push({ _id: id, ...validated })
     }
 
-    await this.index.commit(index => Object.assign(index, stored))
+    await this.index.commit((index) => Object.assign(index, stored))
     this.notify()
     return results
   }
@@ -147,11 +156,11 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
     if (!entry) return null
     if (options?.populate && this._resolveRef) {
       // populate needs the stored "ref:" strings, so it works on the serialized entry
-      return await populateDoc(
+      return (await populateDoc(
         { _id: id, ...this.validateRead(this.migrate({ ...entry })) },
         options.populate,
         this._resolveRef,
-      ) as T & { _id: string }
+      )) as T & { _id: string }
     }
     return { _id: id, ...this.validateRead(this.readEntry(entry)) }
   }
@@ -169,9 +178,12 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
     return null
   }
 
-  async find(filter: QueryFilter = {}, options: QueryOptions = {}): Promise<(T & { _id: string })[]> {
+  async find(
+    filter: QueryFilter = {},
+    options: QueryOptions = {},
+  ): Promise<(T & { _id: string })[]> {
     const index = await this.index.load()
-    let results: (T & { _id: string })[] = []
+    const results: (T & { _id: string })[] = []
 
     for (const [id, rawDoc] of Object.entries(index)) {
       const doc = this.readEntry(rawDoc)
@@ -215,7 +227,7 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
 
     const updated = Object.keys(stored).length
     if (updated > 0) {
-      await this.index.commit(current => Object.assign(current, stored))
+      await this.index.commit((current) => Object.assign(current, stored))
       this.notify()
     }
     return updated
@@ -235,7 +247,9 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
     }
 
     if (removed.length > 0) {
-      await this.index.commit(current => { for (const id of removed) delete current[id] })
+      await this.index.commit((current) => {
+        for (const id of removed) delete current[id]
+      })
       this.notify()
     }
     return removed.length
@@ -251,7 +265,11 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
    * Runs the query now and after every change. Errors from the query or the
    * callback go to `onError` (default: logged); the subscription stays alive.
    */
-  live(filter: QueryFilter, cb: (results: (T & { _id: string })[]) => void, onError?: LiveErrorHandler): () => void
+  live(
+    filter: QueryFilter,
+    cb: (results: (T & { _id: string })[]) => void,
+    onError?: LiveErrorHandler,
+  ): () => void
   live(cb: (results: (T & { _id: string })[]) => void, onError?: LiveErrorHandler): () => void
   live(
     filterOrCb: QueryFilter | ((results: (T & { _id: string })[]) => void),
@@ -265,7 +283,11 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
     return liveQuery(this.emitter, () => this.find(filter), cb, onError)
   }
 
-  liveById(id: string, cb: (doc: (T & { _id: string }) | null) => void, onError?: LiveErrorHandler): () => void {
+  liveById(
+    id: string,
+    cb: (doc: (T & { _id: string }) | null) => void,
+    onError?: LiveErrorHandler,
+  ): () => void {
     return liveQuery(this.emitter, () => this.findById(id), cb, onError)
   }
 
@@ -273,5 +295,4 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
   watch(filter: QueryFilter = {}): AsyncIterable<(T & { _id: string })[]> {
     return watchQuery(this.emitter, () => this.find(filter))
   }
-
 }

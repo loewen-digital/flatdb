@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from 'vite-plus/test'
 import { matchesFilter, applyOptions } from '../src/query.js'
 
 describe('matchesFilter', () => {
@@ -50,8 +50,12 @@ describe('matchesFilter', () => {
 
   // Set operators
   it('$in', () => {
-    expect(matchesFilter({ status: 'active' }, { status: { $in: ['active', 'pending'] } })).toBe(true)
-    expect(matchesFilter({ status: 'deleted' }, { status: { $in: ['active', 'pending'] } })).toBe(false)
+    expect(matchesFilter({ status: 'active' }, { status: { $in: ['active', 'pending'] } })).toBe(
+      true,
+    )
+    expect(matchesFilter({ status: 'deleted' }, { status: { $in: ['active', 'pending'] } })).toBe(
+      false,
+    )
   })
 
   it('$nin', () => {
@@ -87,7 +91,9 @@ describe('matchesFilter', () => {
   })
 
   it('$containsAll', () => {
-    expect(matchesFilter({ tags: ['a', 'b', 'c'] }, { tags: { $containsAll: ['a', 'b'] } })).toBe(true)
+    expect(matchesFilter({ tags: ['a', 'b', 'c'] }, { tags: { $containsAll: ['a', 'b'] } })).toBe(
+      true,
+    )
     expect(matchesFilter({ tags: ['a'] }, { tags: { $containsAll: ['a', 'b'] } })).toBe(false)
   })
 
@@ -99,7 +105,9 @@ describe('matchesFilter', () => {
   // Dot-notation
   it('nested field with dot notation', () => {
     expect(matchesFilter({ settings: { theme: 'dark' } }, { 'settings.theme': 'dark' })).toBe(true)
-    expect(matchesFilter({ settings: { theme: 'light' } }, { 'settings.theme': 'dark' })).toBe(false)
+    expect(matchesFilter({ settings: { theme: 'light' } }, { 'settings.theme': 'dark' })).toBe(
+      false,
+    )
   })
 
   it('nested field with operator', () => {
@@ -108,14 +116,24 @@ describe('matchesFilter', () => {
 
   // Logical operators
   it('$or', () => {
-    expect(matchesFilter({ status: 'active' }, { $or: [{ status: 'active' }, { featured: true }] })).toBe(true)
-    expect(matchesFilter({ featured: true }, { $or: [{ status: 'active' }, { featured: true }] })).toBe(true)
-    expect(matchesFilter({ status: 'deleted' }, { $or: [{ status: 'active' }, { featured: true }] })).toBe(false)
+    expect(
+      matchesFilter({ status: 'active' }, { $or: [{ status: 'active' }, { featured: true }] }),
+    ).toBe(true)
+    expect(
+      matchesFilter({ featured: true }, { $or: [{ status: 'active' }, { featured: true }] }),
+    ).toBe(true)
+    expect(
+      matchesFilter({ status: 'deleted' }, { $or: [{ status: 'active' }, { featured: true }] }),
+    ).toBe(false)
   })
 
   it('$and', () => {
-    expect(matchesFilter({ age: 25 }, { $and: [{ age: { $gt: 18 } }, { age: { $lt: 65 } }] })).toBe(true)
-    expect(matchesFilter({ age: 10 }, { $and: [{ age: { $gt: 18 } }, { age: { $lt: 65 } }] })).toBe(false)
+    expect(matchesFilter({ age: 25 }, { $and: [{ age: { $gt: 18 } }, { age: { $lt: 65 } }] })).toBe(
+      true,
+    )
+    expect(matchesFilter({ age: 10 }, { $and: [{ age: { $gt: 18 } }, { age: { $lt: 65 } }] })).toBe(
+      false,
+    )
   })
 
   it('$not', () => {
@@ -138,12 +156,12 @@ describe('applyOptions', () => {
 
   it('sort ascending', () => {
     const result = applyOptions(docs, { sort: { name: 1 } })
-    expect(result.map(d => d.name)).toEqual(['Alice', 'Bob', 'Charlie'])
+    expect(result.map((d) => d.name)).toEqual(['Alice', 'Bob', 'Charlie'])
   })
 
   it('sort descending', () => {
     const result = applyOptions(docs, { sort: { age: -1 } })
-    expect(result.map(d => d.age)).toEqual([35, 30, 25])
+    expect(result.map((d) => d.age)).toEqual([35, 30, 25])
   })
 
   it('limit', () => {

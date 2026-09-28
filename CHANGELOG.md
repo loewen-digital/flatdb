@@ -7,6 +7,9 @@ is the topmost released one here.
 
 ## Unreleased
 
+- Built with Vite+ 1.0 (`vite-plus`) instead of Vite library mode and `vite-plugin-dts` ([decision 0011](docs/decisions/0011-vite-plus.md)). For consumers: same entry points and exports; the JavaScript is no longer minified, and the declarations of each entry are bundled into one file (`dist/svelte.d.ts` instead of `dist/adapters/svelte.d.ts`, the `exports` map points there). For contributors: `npm run check` formats, lints and type-checks `src/` and runs in CI; `vitest.config.ts` is folded into `vite.config.ts`.
+- Small fixes the new lint found: `live()` marks its first run as intentionally not awaited (errors already go to the handler), a `$regex` case gets its own block scope, two `let` became `const`, an unused loop variable is gone. No behaviour change.
+
 ## v0.2.1 · 2026-09-08 · Release on tag
 
 - Releases run from tags: pushing `v<version>` runs the tests, publishes to npm through trusted publishing (no token, provenance included) and creates the GitHub Release with this file's matching section as notes. The tag must equal the version in `package.json`. Decision: [0010](docs/decisions/0010-release-on-tag.md).

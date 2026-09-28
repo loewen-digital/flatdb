@@ -15,15 +15,15 @@
       "import": "./dist/index.js"
     },
     "./svelte": {
-      "types": "./dist/adapters/svelte.d.ts",
+      "types": "./dist/svelte.d.ts",
       "import": "./dist/svelte.js"
     },
     "./vue": {
-      "types": "./dist/adapters/vue.d.ts",
+      "types": "./dist/vue.d.ts",
       "import": "./dist/vue.js"
     },
     "./solid": {
-      "types": "./dist/adapters/solid.d.ts",
+      "types": "./dist/solid.d.ts",
       "import": "./dist/solid.js"
     }
   },
@@ -31,10 +31,12 @@
     "dist"
   ],
   "scripts": {
-    "build": "vite build",
-    "prepack": "npm run build",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "check": "vp check",
+    "format": "vp check --fix",
+    "test": "vp test run",
+    "test:watch": "vp test",
+    "build": "vp pack",
+    "prepack": "npm run build"
   },
   "keywords": [
     "database",
@@ -52,9 +54,8 @@
     "@types/node": "^25.5.0",
     "fake-indexeddb": "^6.2.5",
     "typescript": "^5.8.3",
-    "vite": "^6.3.4",
-    "vite-plugin-dts": "^4.5.4",
-    "vitest": "^3.1.3"
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0",
+    "vite-plus": "1.0.0"
   },
   "repository": {
     "type": "git",
@@ -63,5 +64,8 @@
   "bugs": {
     "url": "https://github.com/loewen-digital/flatdb/issues"
   },
-  "homepage": "https://github.com/loewen-digital/flatdb#readme"
+  "homepage": "https://github.com/loewen-digital/flatdb#readme",
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0"
+  }
 }

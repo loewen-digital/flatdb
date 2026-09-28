@@ -4,7 +4,13 @@ export { FsAdapter } from './fs-adapter.js'
 export { IndexedDBAdapter } from './indexeddb-adapter.js'
 export { MemoryAdapter } from './memory-adapter.js'
 export { R2Adapter } from './r2-adapter.js'
-export type { R2AdapterOptions, R2BucketLike, R2ListOptionsLike, R2ListResultLike, R2PutOptionsLike } from './r2-adapter.js'
+export type {
+  R2AdapterOptions,
+  R2BucketLike,
+  R2ListOptionsLike,
+  R2ListResultLike,
+  R2PutOptionsLike,
+} from './r2-adapter.js'
 export { Collection } from './collection.js'
 export { PathCollection } from './path-collection.js'
 export type { TreeNode } from './path-collection.js'

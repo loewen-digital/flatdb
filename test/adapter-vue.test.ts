@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vite-plus/test'
 
 // Mock Vue's ref and onUnmounted before importing the adapter
 let cleanupFn: (() => void) | null = null
@@ -36,11 +36,11 @@ describe('Vue adapter: useLiveQuery()', () => {
   it('updates ref.value when data changes', async () => {
     const result = useLiveQuery(col)
 
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     expect(result.value).toHaveLength(0)
 
     await col.insert({ text: 'A' })
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     expect(result.value).toHaveLength(1)
   })
 
@@ -48,7 +48,7 @@ describe('Vue adapter: useLiveQuery()', () => {
     await col.insert({ text: 'A', done: true })
 
     const result = useLiveQuery(col, { done: false })
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
 
     expect(result.value).toHaveLength(0)
   })
@@ -61,11 +61,11 @@ describe('Vue adapter: useLiveQuery()', () => {
   it('cleanup stops updates', async () => {
     const result = useLiveQuery(col)
 
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     cleanupFn!()
 
     await col.insert({ text: 'A' })
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
 
     // Should still be empty since we cleaned up
     expect(result.value).toHaveLength(0)
@@ -75,10 +75,10 @@ describe('Vue adapter: useLiveQuery()', () => {
     const strict = new Collection(adapter, 'strict', z.object({ text: z.string() }))
     await adapter.write('strict/_index.json', JSON.stringify({ x: { text: 1 } }))
     const errors: unknown[] = []
-    useLiveQuery(strict, {}, e => errors.push(e))
+    useLiveQuery(strict, {}, (e) => errors.push(e))
     const unsub = () => {}
 
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     expect(errors).toHaveLength(1)
     expect(errors[0]).toBeInstanceOf(z.ZodError)
     unsub()

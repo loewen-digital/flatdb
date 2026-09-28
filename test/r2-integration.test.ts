@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vite-plus/test'
 import { z } from 'zod'
 import { R2Adapter } from '../src/r2-adapter.js'
 import { Collection } from '../src/collection.js'
@@ -35,7 +35,7 @@ describe('Collection (auto mode) with R2Adapter', () => {
     bucket.calls.length = 0
     const admins = await fresh.find({ role: 'admin' })
 
-    expect(admins.map(d => d.name).sort()).toEqual(['A', 'C'])
+    expect(admins.map((d) => d.name).sort()).toEqual(['A', 'C'])
     expect(bucket.calls).toEqual(['get users/_index.json'])
   })
 
@@ -90,7 +90,7 @@ describe('PathCollection with R2Adapter', () => {
     expect(await col.find({ $path: 'docs/**' })).toHaveLength(4)
 
     const tree = await col.tree('docs')
-    expect(tree.children.map(c => c.path)).toEqual(['docs/a', 'docs/api'])
+    expect(tree.children.map((c) => c.path)).toEqual(['docs/a', 'docs/api'])
   })
 
   it('update writes to the node file after promote', async () => {
@@ -119,7 +119,7 @@ describe('PathCollection with R2Adapter', () => {
     expect(await col.get('draft')).toBeNull()
     expect((await col.get('published'))!.title).toBe('Draft')
     expect((await col.get('published/part-1'))!.title).toBe('Part 1')
-    expect([...bucket.objects.keys()].filter(k => k.startsWith('pages/draft'))).toEqual([])
+    expect([...bucket.objects.keys()].filter((k) => k.startsWith('pages/draft'))).toEqual([])
   })
 
   it('delete recursive removes the files', async () => {
@@ -157,10 +157,12 @@ describe('flatdb() with R2Adapter', () => {
   it('full CRUD workflow under a bucket prefix', async () => {
     const bucket = new FakeR2Bucket()
     const db = flatdb(new R2Adapter({ bucket, prefix: 'data' }), {
-      users: collection(z.object({
-        name: z.string(),
-        email: z.string(),
-      })),
+      users: collection(
+        z.object({
+          name: z.string(),
+          email: z.string(),
+        }),
+      ),
     })
 
     const user = await db.users.insert({ name: 'Max', email: 'max@example.com' })
@@ -177,10 +179,12 @@ describe('flatdb() with R2Adapter', () => {
   it('refs + populate', async () => {
     const db = flatdb(new R2Adapter({ bucket: new FakeR2Bucket() }), {
       users: collection(z.object({ name: z.string() })),
-      todos: collection(z.object({
-        text: z.string(),
-        assignee: ref('users'),
-      })),
+      todos: collection(
+        z.object({
+          text: z.string(),
+          assignee: ref('users'),
+        }),
+      ),
     })
 
     const user = await db.users.insert({ name: 'Max' })
@@ -200,9 +204,13 @@ describe('flatdb() with R2Adapter', () => {
   })
 
   it('watch option is ignored without adapter support', async () => {
-    const db = flatdb(new R2Adapter({ bucket: new FakeR2Bucket() }), {
-      users: collection(),
-    }, { watch: true })
+    const db = flatdb(
+      new R2Adapter({ bucket: new FakeR2Bucket() }),
+      {
+        users: collection(),
+      },
+      { watch: true },
+    )
 
     await db.users.insert({ name: 'Max' })
     expect(await db.users.count()).toBe(1)

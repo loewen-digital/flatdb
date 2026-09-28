@@ -54,9 +54,10 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
       const fullPath = `${this.name}/${relativePath}`
 
       if (entry.endsWith('.json')) {
-        const docPath = entry === 'index.json'
-          ? dir // index.json → the directory itself is the path
-          : relativePath.replace(/\.json$/, '')
+        const docPath =
+          entry === 'index.json'
+            ? dir // index.json → the directory itself is the path
+            : relativePath.replace(/\.json$/, '')
         const raw = await this.adapter.read(fullPath)
         if (raw) {
           index[docPath] = JSON.parse(raw)
@@ -118,7 +119,9 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
     const filePath = this.docFilePath(path)
     await this.adapter.write(filePath, JSON.stringify(validated, null, 2))
 
-    await this.index.commit(index => { index[path] = validated })
+    await this.index.commit((index) => {
+      index[path] = validated
+    })
     this.notify()
 
     return validated
@@ -137,7 +140,7 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
 
   async find(filter: QueryFilter = {}, options: QueryOptions = {}): Promise<T[]> {
     const index = await this.index.load()
-    let results: T[] = []
+    const results: T[] = []
     const pathPattern = filter.$path as string | undefined
 
     for (const [docPath, entry] of Object.entries(index)) {
@@ -181,7 +184,9 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
     const filePath = isNode ? this.docIndexFilePath(path) : this.docFilePath(path)
     await this.adapter.write(filePath, JSON.stringify(validated, null, 2))
 
-    await this.index.commit(current => { current[path] = validated })
+    await this.index.commit((current) => {
+      current[path] = validated
+    })
     this.notify()
 
     return validated
@@ -190,14 +195,16 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
   async delete(path: string, options?: { recursive?: boolean }): Promise<void> {
     const index = await this.index.load()
     const removed = options?.recursive
-      ? Object.keys(index).filter(p => p === path || p.startsWith(path + '/'))
+      ? Object.keys(index).filter((p) => p === path || p.startsWith(path + '/'))
       : [path]
 
     for (const p of removed) {
       await this.deleteDocFile(p)
     }
 
-    await this.index.commit(current => { for (const p of removed) delete current[p] })
+    await this.index.commit((current) => {
+      for (const p of removed) delete current[p]
+    })
     this.notify()
   }
 
@@ -218,9 +225,11 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
     // A node (folder/index.json) moves together with everything below it
     const isNode = await this.adapter.exists(this.docIndexFilePath(from))
     const moved = isNode
-      ? Object.keys(index).filter(p => p === from || p.startsWith(from + '/'))
+      ? Object.keys(index).filter((p) => p === from || p.startsWith(from + '/'))
       : [from]
-    const renamed = moved.map(p => [p, p === from ? to : to + p.slice(from.length), index[p]] as const)
+    const renamed = moved.map(
+      (p) => [p, p === from ? to : to + p.slice(from.length), index[p]] as const,
+    )
 
     if (isNode) {
       await this.adapter.move(`${this.name}/${from}`, `${this.name}/${to}`)
@@ -228,7 +237,7 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
       await this.adapter.move(this.docFilePath(from), this.docFilePath(to))
     }
 
-    await this.index.commit(current => {
+    await this.index.commit((current) => {
       for (const [oldPath, newPath, doc] of renamed) {
         delete current[oldPath]
         current[newPath] = doc
@@ -260,7 +269,7 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
     }
     // Check for children
     const entries = await this.adapter.list(`${this.name}/${path}`)
-    const children = entries.filter(e => e !== 'index.json' && e !== INDEX_FILE)
+    const children = entries.filter((e) => e !== 'index.json' && e !== INDEX_FILE)
     if (children.length > 0) {
       throw new Error(`Cannot demote: ${path} has children`)
     }
@@ -289,7 +298,7 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
         childPaths.add(prefix + segment)
       }
 
-      const children = [...childPaths].sort().map(cp => buildNode(cp))
+      const children = [...childPaths].sort().map((cp) => buildNode(cp))
 
       return { path: nodePath, doc, children }
     }
@@ -312,7 +321,9 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
         result[field] = await this.resolveRefValue(value)
       } else if (Array.isArray(value)) {
         result[field] = await Promise.all(
-          value.map(v => (typeof v === 'string' && v.startsWith('ref:')) ? this.resolveRefValue(v) : v),
+          value.map((v) =>
+            typeof v === 'string' && v.startsWith('ref:') ? this.resolveRefValue(v) : v,
+          ),
         )
       }
     }
@@ -357,7 +368,6 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
   watch(filter: QueryFilter = {}): AsyncIterable<T[]> {
     return watchQuery(this.emitter, () => this.find(filter))
   }
-
 }
 
 function matchPathPattern(docPath: string, pattern: string): boolean {

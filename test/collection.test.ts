@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vite-plus/test'
 import { z } from 'zod'
 import fs from 'fs/promises'
 import path from 'path'
@@ -53,10 +53,7 @@ describe('Collection (auto mode)', () => {
   describe('insertMany', () => {
     it('inserts multiple documents', async () => {
       const col = new Collection(adapter, 'users')
-      const results = await col.insertMany([
-        { name: 'Alice' },
-        { name: 'Bob' },
-      ])
+      const results = await col.insertMany([{ name: 'Alice' }, { name: 'Bob' }])
 
       expect(results).toHaveLength(2)
       expect(results[0].name).toBe('Alice')
@@ -371,9 +368,12 @@ describe('Collection with Zod schema', () => {
     // Write directly to disk without the 'role' field
     await adapter.write('users/abc.json', JSON.stringify({ name: 'Max', email: 'max@example.com' }))
     // Add to index
-    await adapter.write('users/_index.json', JSON.stringify({
-      abc: { name: 'Max', email: 'max@example.com' },
-    }))
+    await adapter.write(
+      'users/_index.json',
+      JSON.stringify({
+        abc: { name: 'Max', email: 'max@example.com' },
+      }),
+    )
 
     const found = await col.findById('abc')
     expect(found).not.toBeNull()
@@ -383,14 +383,20 @@ describe('Collection with Zod schema', () => {
   it('read-tolerant: strips unknown fields by default', async () => {
     const col = new Collection(adapter, 'users', userSchema)
 
-    await adapter.write('users/abc.json', JSON.stringify({
-      name: 'Max',
-      email: 'max@example.com',
-      unknownField: 'should be stripped',
-    }))
-    await adapter.write('users/_index.json', JSON.stringify({
-      abc: { name: 'Max', email: 'max@example.com', unknownField: 'x' },
-    }))
+    await adapter.write(
+      'users/abc.json',
+      JSON.stringify({
+        name: 'Max',
+        email: 'max@example.com',
+        unknownField: 'should be stripped',
+      }),
+    )
+    await adapter.write(
+      'users/_index.json',
+      JSON.stringify({
+        abc: { name: 'Max', email: 'max@example.com', unknownField: 'x' },
+      }),
+    )
 
     const found = await col.findById('abc')
     expect(found).not.toHaveProperty('unknownField')
@@ -399,14 +405,20 @@ describe('Collection with Zod schema', () => {
   it('unknownFields: passthrough keeps extra fields', async () => {
     const col = new Collection(adapter, 'users', userSchema, { unknownFields: 'passthrough' })
 
-    await adapter.write('users/abc.json', JSON.stringify({
-      name: 'Max',
-      email: 'max@example.com',
-      extra: 'kept',
-    }))
-    await adapter.write('users/_index.json', JSON.stringify({
-      abc: { name: 'Max', email: 'max@example.com', extra: 'kept' },
-    }))
+    await adapter.write(
+      'users/abc.json',
+      JSON.stringify({
+        name: 'Max',
+        email: 'max@example.com',
+        extra: 'kept',
+      }),
+    )
+    await adapter.write(
+      'users/_index.json',
+      JSON.stringify({
+        abc: { name: 'Max', email: 'max@example.com', extra: 'kept' },
+      }),
+    )
 
     const found = await col.findById('abc')
     expect((found as any).extra).toBe('kept')
@@ -415,14 +427,20 @@ describe('Collection with Zod schema', () => {
   it('unknownFields: error rejects extra fields', async () => {
     const col = new Collection(adapter, 'users', userSchema, { unknownFields: 'error' })
 
-    await adapter.write('users/abc.json', JSON.stringify({
-      name: 'Max',
-      email: 'max@example.com',
-      extra: 'not allowed',
-    }))
-    await adapter.write('users/_index.json', JSON.stringify({
-      abc: { name: 'Max', email: 'max@example.com', extra: 'not allowed' },
-    }))
+    await adapter.write(
+      'users/abc.json',
+      JSON.stringify({
+        name: 'Max',
+        email: 'max@example.com',
+        extra: 'not allowed',
+      }),
+    )
+    await adapter.write(
+      'users/_index.json',
+      JSON.stringify({
+        abc: { name: 'Max', email: 'max@example.com', extra: 'not allowed' },
+      }),
+    )
 
     // Zod strict mode would need z.strict() — default z.object strips, so this won't error
     // This test documents current behavior: standard zod parse strips by default

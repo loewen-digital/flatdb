@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vite-plus/test'
 import { z } from 'zod'
 import fs from 'fs/promises'
 import path from 'path'
@@ -92,7 +92,7 @@ describe('PathCollection', () => {
     it('finds direct children with *', async () => {
       const results = await col.find({ $path: 'blog/*' })
       expect(results).toHaveLength(2)
-      expect(results.map(r => r.title).sort()).toEqual(['Post 1', 'Post 2'])
+      expect(results.map((r) => r.title).sort()).toEqual(['Post 1', 'Post 2'])
     })
 
     it('finds all descendants with **', async () => {
@@ -273,7 +273,7 @@ describe('PathCollection', () => {
       expect(tree.doc!.title).toBe('Docs')
       expect(tree.children).toHaveLength(2)
 
-      const api = tree.children.find(c => c.path === 'docs/api')!
+      const api = tree.children.find((c) => c.path === 'docs/api')!
       expect(api.doc!.title).toBe('API')
       expect(api.children).toHaveLength(1)
       expect(api.children[0].path).toBe('docs/api/auth')

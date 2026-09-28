@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from 'vite-plus/test'
 import 'fake-indexeddb/auto'
 import { z } from 'zod'
 import { flatdb, collection } from '../src/index.js'
@@ -6,10 +6,12 @@ import { flatdb, collection } from '../src/index.js'
 describe('flatdb("idb://...") auto-detection', () => {
   it('auto-selects IndexedDBAdapter for idb:// prefix', async () => {
     const db = flatdb(`idb://test-${Date.now()}-1`, {
-      users: collection(z.object({
-        name: z.string(),
-        email: z.string(),
-      })),
+      users: collection(
+        z.object({
+          name: z.string(),
+          email: z.string(),
+        }),
+      ),
     })
 
     const user = await db.users.insert({ name: 'Max', email: 'max@example.com' })

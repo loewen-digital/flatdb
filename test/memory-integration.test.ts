@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vite-plus/test'
 import { z } from 'zod'
 import { MemoryAdapter } from '../src/memory-adapter.js'
 import { Collection } from '../src/collection.js'
@@ -101,7 +101,7 @@ describe('Collection (auto mode) with MemoryAdapter', () => {
     ])
 
     const sorted = await col.find({}, { sort: { price: 1 }, limit: 2 })
-    expect(sorted.map(d => d.name)).toEqual(['A', 'B'])
+    expect(sorted.map((d) => d.name)).toEqual(['A', 'B'])
 
     const selected = await col.find({}, { select: ['name'] })
     expect(selected[0]).not.toHaveProperty('price')
@@ -169,16 +169,16 @@ describe('Collection (auto mode) with MemoryAdapter', () => {
     const results: any[][] = []
     col.live((docs) => results.push(docs))
 
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     expect(results[0]).toHaveLength(0)
 
     const user = await col.insert({ name: 'Max' })
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     expect(results[results.length - 1]).toHaveLength(1)
 
     const byIdResults: any[] = []
     const unsub = col.liveById(user._id, (doc) => byIdResults.push(doc))
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     expect(byIdResults[0]!.name).toBe('Max')
 
     unsub()
@@ -297,7 +297,7 @@ describe('PathCollection with MemoryAdapter', () => {
     expect(tree.doc!.title).toBe('Docs')
     expect(tree.children).toHaveLength(2)
 
-    const api = tree.children.find(c => c.path === 'docs/api')!
+    const api = tree.children.find((c) => c.path === 'docs/api')!
     expect(api.children).toHaveLength(1)
     expect(api.children[0].path).toBe('docs/api/auth')
   })
@@ -308,16 +308,16 @@ describe('PathCollection with MemoryAdapter', () => {
     const results: any[][] = []
     col.live((docs) => results.push(docs))
 
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     expect(results[0]).toHaveLength(0)
 
     await col.insert('about', { title: 'About' })
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     expect(results[results.length - 1]).toHaveLength(1)
 
     const pathResults: any[] = []
     const unsub = col.liveByPath('about', (doc) => pathResults.push(doc))
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     expect(pathResults[0]!.title).toBe('About')
 
     unsub()
@@ -328,10 +328,12 @@ describe('flatdb() with MemoryAdapter', () => {
   it('full CRUD workflow', async () => {
     const adapter = new MemoryAdapter()
     const db = flatdb(adapter, {
-      users: collection(z.object({
-        name: z.string(),
-        email: z.string(),
-      })),
+      users: collection(
+        z.object({
+          name: z.string(),
+          email: z.string(),
+        }),
+      ),
     })
 
     const user = await db.users.insert({ name: 'Max', email: 'max@example.com' })
@@ -349,10 +351,12 @@ describe('flatdb() with MemoryAdapter', () => {
     const adapter = new MemoryAdapter()
     const db = flatdb(adapter, {
       users: collection(z.object({ name: z.string() })),
-      todos: collection(z.object({
-        text: z.string(),
-        assignee: ref('users'),
-      })),
+      todos: collection(
+        z.object({
+          text: z.string(),
+          assignee: ref('users'),
+        }),
+      ),
     })
 
     const user = await db.users.insert({ name: 'Max' })

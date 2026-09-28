@@ -64,7 +64,7 @@ export class IndexedDBAdapter implements StorageAdapter {
     // Check if it's a "directory" (any key starts with path/)
     const keys = await this.getAllKeys()
     const prefix = path + '/'
-    return keys.some(k => k.startsWith(prefix))
+    return keys.some((k) => k.startsWith(prefix))
   }
 
   async list(dir: string): Promise<string[]> {

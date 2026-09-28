@@ -3,7 +3,10 @@ import { z } from 'zod'
 const REF_PREFIX = 'ref:'
 
 export function ref(collection: string) {
-  return z.string().transform((val) => val).brand<'ref'>()
+  return z
+    .string()
+    .transform((val) => val)
+    .brand<'ref'>()
     .describe(`ref:${collection}`)
 }
 
@@ -79,7 +82,9 @@ export function serializeRefs(doc: Record<string, any>, refMetas: RefMeta[]): Re
     const value = result[field]
     if (value === undefined || value === null) continue
     if (Array.isArray(value)) {
-      result[field] = value.map(v => typeof v === 'string' && !v.startsWith(REF_PREFIX) ? serializeRef(collection, v) : v)
+      result[field] = value.map((v) =>
+        typeof v === 'string' && !v.startsWith(REF_PREFIX) ? serializeRef(collection, v) : v,
+      )
     } else if (typeof value === 'string' && !value.startsWith(REF_PREFIX)) {
       result[field] = serializeRef(collection, value)
     }
@@ -94,7 +99,7 @@ export function deserializeRefs(doc: Record<string, any>): Record<string, any> {
       const parsed = deserializeRef(value)
       if (parsed) result[key] = parsed.id
     } else if (Array.isArray(value)) {
-      result[key] = value.map(v => {
+      result[key] = value.map((v) => {
         if (isRef(v)) {
           const parsed = deserializeRef(v)
           return parsed ? parsed.id : v

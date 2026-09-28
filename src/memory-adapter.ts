@@ -67,7 +67,7 @@ export class MemoryAdapter implements StorageAdapter {
     // Move all keys under from/ prefix (directory move)
     const prefix = from + '/'
     const toMove: [string, string][] = []
-    for (const [key, val] of this.store.entries()) {
+    for (const key of this.store.keys()) {
       if (key.startsWith(prefix)) {
         const newKey = to + '/' + key.slice(prefix.length)
         toMove.push([key, newKey])

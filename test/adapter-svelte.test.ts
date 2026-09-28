@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vite-plus/test'
 import { z } from 'zod'
 import { MemoryAdapter } from '../src/memory-adapter.js'
 import { Collection } from '../src/collection.js'
@@ -29,7 +29,7 @@ describe('Svelte adapter: liveQuery()', () => {
       results.push(value)
     })
 
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     expect(results.length).toBeGreaterThanOrEqual(1)
     expect(results[results.length - 1]).toHaveLength(1)
 
@@ -44,15 +44,15 @@ describe('Svelte adapter: liveQuery()', () => {
       results.push(value)
     })
 
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     expect(results[results.length - 1]).toHaveLength(0)
 
     await col.insert({ text: 'A', done: false })
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     expect(results[results.length - 1]).toHaveLength(1)
 
     await col.insert({ text: 'B', done: false })
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     expect(results[results.length - 1]).toHaveLength(2)
 
     unsub()
@@ -68,7 +68,7 @@ describe('Svelte adapter: liveQuery()', () => {
       results.push(value)
     })
 
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     expect(results[results.length - 1]).toHaveLength(0) // done:true filtered out
 
     unsub()
@@ -82,12 +82,12 @@ describe('Svelte adapter: liveQuery()', () => {
       results.push(value)
     })
 
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     unsub()
     const countAfterUnsub = results.length
 
     await col.insert({ text: 'A' })
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
 
     expect(results.length).toBe(countAfterUnsub)
   })
@@ -96,10 +96,10 @@ describe('Svelte adapter: liveQuery()', () => {
     const strict = new Collection(adapter, 'strict', z.object({ text: z.string() }))
     await adapter.write('strict/_index.json', JSON.stringify({ x: { text: 1 } }))
     const errors: unknown[] = []
-    const store = liveQuery(strict, {}, e => errors.push(e))
+    const store = liveQuery(strict, {}, (e) => errors.push(e))
     const unsub = store.subscribe(() => {})
 
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     expect(errors).toHaveLength(1)
     expect(errors[0]).toBeInstanceOf(z.ZodError)
     unsub()

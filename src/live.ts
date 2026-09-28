@@ -18,7 +18,7 @@ export function liveQuery<T>(
   onError: LiveErrorHandler = logError,
 ): () => void {
   const run = () => query().then(cb).catch(onError)
-  run()
+  void run()
   return emitter.subscribe(run)
 }
 
@@ -30,7 +30,10 @@ export function liveQuery<T>(
 export function watchQuery<T>(emitter: EventEmitter, query: () => Promise<T>): AsyncIterable<T> {
   return {
     [Symbol.asyncIterator]() {
-      type Settle = { resolve: (result: IteratorResult<T>) => void; reject: (error: unknown) => void }
+      type Settle = {
+        resolve: (result: IteratorResult<T>) => void
+        reject: (error: unknown) => void
+      }
       const end: IteratorResult<T> = { value: undefined as any, done: true }
       let pending: Settle | null = null
       let first = true
@@ -46,8 +49,8 @@ export function watchQuery<T>(emitter: EventEmitter, query: () => Promise<T>): A
 
       const run = ({ resolve, reject }: Settle) => {
         query().then(
-          value => resolve({ value, done: false }),
-          error => {
+          (value) => resolve({ value, done: false }),
+          (error) => {
             finish()
             reject(error)
           },

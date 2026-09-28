@@ -1,10 +1,10 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi } from 'vite-plus/test'
 import { z } from 'zod'
 import { MemoryAdapter } from '../src/memory-adapter.js'
 import { Collection } from '../src/collection.js'
 import { PathCollection } from '../src/path-collection.js'
 
-const tick = () => new Promise(r => setTimeout(r, 20))
+const tick = () => new Promise((r) => setTimeout(r, 20))
 
 /** Replaces the index so the next read fails schema validation (or succeeds again). */
 async function setIndex(adapter: MemoryAdapter, col: object, name: string, index: object) {
@@ -26,7 +26,10 @@ describe('live query errors: Collection', () => {
 
     const results: any[][] = []
     const errors: unknown[] = []
-    const unsub = col.live(r => results.push(r), e => errors.push(e))
+    const unsub = col.live(
+      (r) => results.push(r),
+      (e) => errors.push(e),
+    )
     await tick()
     expect(results).toHaveLength(1)
 
@@ -51,7 +54,11 @@ describe('live query errors: Collection', () => {
     await setIndex(adapter, col, 'users', { bad: { name: 123 } })
 
     const errors: unknown[] = []
-    const unsub = col.live({}, () => {}, e => errors.push(e))
+    const unsub = col.live(
+      {},
+      () => {},
+      (e) => errors.push(e),
+    )
     await tick()
     expect(errors).toHaveLength(1)
     unsub()
@@ -76,7 +83,12 @@ describe('live query errors: Collection', () => {
     const adapter = new MemoryAdapter()
     const col = new Collection(adapter, 'users', schema)
     const errors: unknown[] = []
-    const unsub = col.live(() => { throw new Error('boom') }, e => errors.push(e))
+    const unsub = col.live(
+      () => {
+        throw new Error('boom')
+      },
+      (e) => errors.push(e),
+    )
     await tick()
     expect((errors[0] as Error).message).toBe('boom')
     unsub()
@@ -88,7 +100,11 @@ describe('live query errors: Collection', () => {
     const user = await col.insert({ name: 'Max' })
 
     const errors: unknown[] = []
-    const unsub = col.liveById(user._id, () => {}, e => errors.push(e))
+    const unsub = col.liveById(
+      user._id,
+      () => {},
+      (e) => errors.push(e),
+    )
     await tick()
     await setIndex(adapter, col, 'users', { [user._id]: { name: 123 } })
     emit(col)
@@ -137,9 +153,13 @@ describe('live query errors: Collection', () => {
     expect(listeners(col)).toBe(0)
 
     await setIndex(adapter, col, 'users', { bad: { name: 123 } })
-    await expect((async () => {
-      for await (const _ of col.watch()) { /* never */ }
-    })()).rejects.toBeInstanceOf(z.ZodError)
+    await expect(
+      (async () => {
+        for await (const _ of col.watch()) {
+          /* never */
+        }
+      })(),
+    ).rejects.toBeInstanceOf(z.ZodError)
     expect(listeners(col)).toBe(0)
   })
 })
@@ -156,8 +176,15 @@ describe('live query errors: PathCollection', () => {
     const docs: any[] = []
     const errors: unknown[] = []
     const unsubs = [
-      col.live(r => results.push(r), e => errors.push(e)),
-      col.liveByPath('about', d => docs.push(d), e => errors.push(e)),
+      col.live(
+        (r) => results.push(r),
+        (e) => errors.push(e),
+      ),
+      col.liveByPath(
+        'about',
+        (d) => docs.push(d),
+        (e) => errors.push(e),
+      ),
     ]
     await tick()
     expect(results).toHaveLength(1)
@@ -174,7 +201,7 @@ describe('live query errors: PathCollection', () => {
     await tick()
     expect(results).toHaveLength(2)
     expect(docs[1].title).toBe('Back')
-    unsubs.forEach(u => u())
+    unsubs.forEach((u) => u())
   })
 
   it('watch() ends with the error', async () => {

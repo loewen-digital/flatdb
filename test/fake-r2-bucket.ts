@@ -1,5 +1,10 @@
 import { createHash } from 'node:crypto'
-import type { R2BucketLike, R2ListOptionsLike, R2ListResultLike, R2PutOptionsLike } from '../src/r2-adapter.js'
+import type {
+  R2BucketLike,
+  R2ListOptionsLike,
+  R2ListResultLike,
+  R2PutOptionsLike,
+} from '../src/r2-adapter.js'
 
 /**
  * In-memory stand-in for an R2 bucket binding with R2's semantics as observed in
@@ -32,16 +37,26 @@ export class FakeR2Bucket implements R2BucketLike {
     return value === undefined ? null : { etag: etag(value), text: async () => value }
   }
 
-  async put(key: string, value: string, options?: R2PutOptionsLike): Promise<{ etag: string } | null> {
+  async put(
+    key: string,
+    value: string,
+    options?: R2PutOptionsLike,
+  ): Promise<{ etag: string } | null> {
     const onlyIf = options?.onlyIf
     this.calls.push(`put ${key}${onlyIf ? ' onlyIf' : ''}`)
     if (onlyIf) {
       for (const tag of [onlyIf.etagMatches, onlyIf.etagDoesNotMatch]) {
-        if (tag?.startsWith('"')) throw new TypeError(`Conditional ETag should not be wrapped in quotes (${tag}).`)
+        if (tag?.startsWith('"'))
+          throw new TypeError(`Conditional ETag should not be wrapped in quotes (${tag}).`)
       }
       const current = this.etagOf(key)
       if (onlyIf.etagMatches !== undefined && current !== onlyIf.etagMatches) return null
-      if (onlyIf.etagDoesNotMatch === '*' ? current !== null : onlyIf.etagDoesNotMatch !== undefined && current === onlyIf.etagDoesNotMatch) return null
+      if (
+        onlyIf.etagDoesNotMatch === '*'
+          ? current !== null
+          : onlyIf.etagDoesNotMatch !== undefined && current === onlyIf.etagDoesNotMatch
+      )
+        return null
     }
     this.objects.set(key, value)
     return { etag: etag(value) }
@@ -75,8 +90,8 @@ export class FakeR2Bucket implements R2BucketLike {
     const truncated = end < entries.length
 
     return {
-      objects: page.filter(e => !e.folder).map(e => ({ key: e.key })),
-      delimitedPrefixes: page.filter(e => e.folder).map(e => e.key),
+      objects: page.filter((e) => !e.folder).map((e) => ({ key: e.key })),
+      delimitedPrefixes: page.filter((e) => e.folder).map((e) => e.key),
       truncated,
       cursor: truncated ? String(end) : undefined,
     }

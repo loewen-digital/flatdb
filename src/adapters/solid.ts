@@ -25,9 +25,13 @@ export function createLiveQuery<T>(
 ): Accessor<T[]> {
   const [data, setData] = createSignal<T[]>([])
 
-  const unsub = collection.live(filter, (results: any[]) => {
-    setData(() => results as T[])
-  }, onError)
+  const unsub = collection.live(
+    filter,
+    (results: any[]) => {
+      setData(() => results as T[])
+    },
+    onError,
+  )
 
   onCleanup(() => {
     unsub()

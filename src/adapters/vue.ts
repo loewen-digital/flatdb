@@ -26,9 +26,13 @@ export function useLiveQuery<T>(
 ): Ref<T[]> {
   const data = ref<T[]>([]) as Ref<T[]>
 
-  const unsub = collection.live(filter, (results: any[]) => {
-    data.value = results as T[]
-  }, onError)
+  const unsub = collection.live(
+    filter,
+    (results: any[]) => {
+      data.value = results as T[]
+    },
+    onError,
+  )
 
   onUnmounted(() => {
     unsub()

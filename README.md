@@ -29,7 +29,7 @@ const db = flatdb('./data', {
       name: z.string(),
       email: z.string(),
       role: z.enum(['admin', 'user']).default('user'),
-    })
+    }),
   ),
 })
 ```
@@ -149,7 +149,7 @@ const Todo = collection(
       ...doc,
       status: doc.done ? 'done' : 'todo',
     }),
-  }
+  },
 )
 ```
 
@@ -210,7 +210,7 @@ const db = flatdb(new R2Adapter({ bucket: env.CONTENT }))
 // wrangler.jsonc
 {
   "compatibility_flags": ["nodejs_compat"],
-  "r2_buckets": [{ "binding": "CONTENT", "bucket_name": "my-app-content" }]
+  "r2_buckets": [{ "binding": "CONTENT", "bucket_name": "my-app-content" }],
 }
 ```
 
@@ -236,7 +236,7 @@ export const load = async ({ platform }) => {
 What to know when running on Workers:
 
 - **One database per request.** A collection caches `_index.json` in memory and refreshes it only on its own writes. Build `flatdb()` inside the request, as above, so every request reads the current index. A module-level instance serves stale results once another isolate writes; its writes stay safe, see the next point.
-- **Concurrent writes keep the index consistent.** `_index.json` is written with a compare-and-swap on the object's etag. A writer that lost the race reloads the index, re-applies its change and tries again, five times, then it throws; the document file is already there and `rebuildIndex()` picks it up. The same guarantee holds for `MemoryAdapter` and `IndexedDBAdapter`; `FsAdapter` writes unconditionally. Nothing serializes writes to the *same document*: two requests updating one id at once end last-writer-wins.
+- **Concurrent writes keep the index consistent.** `_index.json` is written with a compare-and-swap on the object's etag. A writer that lost the race reloads the index, re-applies its change and tries again, five times, then it throws; the document file is already there and `rebuildIndex()` picks it up. The same guarantee holds for `MemoryAdapter` and `IndexedDBAdapter`; `FsAdapter` writes unconditionally. Nothing serializes writes to the _same document_: two requests updating one id at once end last-writer-wins.
 - **No external watch.** R2 bindings have no change notifications, so `{ watch: true }` has no effect. Live queries still react to writes made through the same instance.
 - **`nodejs_compat` is required.** The package entry also exports `FsAdapter`, whose `fs` import has to resolve even though Workers never call it.
 
