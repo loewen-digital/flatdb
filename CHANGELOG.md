@@ -7,14 +7,16 @@ is the topmost released one here.
 
 ## Unreleased
 
-- `rebuildIndex()` in path mode no longer fails with `ENOTDIR` when the collection folder holds a file that is not a document, such as the `.DS_Store` macOS drops into every folder opened in Finder; such files are skipped.
+## v0.3.0 · 2026-10-09 · Unique fields, a concurrency-safe FsAdapter, Vite+
+
 - **Unique fields:** `collection(schema, { unique: ['email'] })` refuses an `insert`, `insertMany` or `update` that would store a second document with the same value and throws the new `UniqueConstraintError` (`collection`, `field`, `value`). The check runs inside the `_index.json` compare-and-swap, so two requests registering the same address at once cannot both succeed; the pattern `findOne` then `insert` could. Dot paths work, `null` and missing fields are not duplicates, path mode does not offer it. In a collection with unique fields the index is written before the document file. README section "Unique Fields". Decision: [0013](docs/decisions/0013-unique-fields.md). (#9)
-- `insertMany` and a multi-document `update` validate every document before they write the first one, so a schema error in the batch leaves nothing half-written.
 - `FsAdapter` no longer corrupts or loses data under parallel requests: every file is written through a temp file and a `rename` (a reader sees the old or the new content, never a torn `_index.json`), and `_index.json` goes through the same compare-and-swap as on R2, IndexedDB and Memory, so writers from several `flatdb()` instances in one process keep each other's entries. Separate processes on one folder are still not coordinated. The README has the guarantees per adapter under "Concurrent writers". Decision: [0012](docs/decisions/0012-fs-compare-and-swap.md). (#10)
 - A burst of writers on one collection holds on every adapter: a writer that lost the index race waits a short random time before it reloads, and gives up after twenty attempts instead of five. Measured with `FsAdapter`: 200 parallel inserts from 200 instances all land.
-- For contributors: files are formatted on save when Claude Code or Codex edits them (`vp fmt` through the hooks in `.claude/settings.json` and `.codex/hooks.json`); `npm run format` stays for everything else.
+- `insertMany` and a multi-document `update` validate every document before they write the first one, so a schema error in the batch leaves nothing half-written.
+- `rebuildIndex()` in path mode no longer fails with `ENOTDIR` when the collection folder holds a file that is not a document, such as the `.DS_Store` macOS drops into every folder opened in Finder; such files are skipped.
 - Built with Vite+ 1.0 (`vite-plus`) instead of Vite library mode and `vite-plugin-dts` ([decision 0011](docs/decisions/0011-vite-plus.md)). For consumers: same entry points and exports; the JavaScript is no longer minified, and the declarations of each entry are bundled into one file (`dist/svelte.d.ts` instead of `dist/adapters/svelte.d.ts`, the `exports` map points there). For contributors: `npm run check` formats, lints and type-checks `src/` and runs in CI; `vitest.config.ts` is folded into `vite.config.ts`.
 - Small fixes the new lint found: `live()` marks its first run as intentionally not awaited (errors already go to the handler), a `$regex` case gets its own block scope, two `let` became `const`, an unused loop variable is gone. No behaviour change.
+- For contributors: files are formatted on save when Claude Code or Codex edits them (`vp fmt` through the hooks in `.claude/settings.json` and `.codex/hooks.json`); `npm run format` stays for everything else.
 
 ## v0.2.1 · 2026-09-08 · Release on tag
 
