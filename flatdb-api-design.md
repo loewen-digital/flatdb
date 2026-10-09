@@ -515,6 +515,8 @@ data/users/
 - Automatically updated on every write.
 - Queries run against the index first.
 - Can be rebuilt from individual files at any time: `db.users.rebuildIndex()`
+- Written as a compare-and-swap: a writer that finds the index changed reloads it, re-applies its change and retries after a short random wait (up to twenty times).
+- Unique fields (`collection(schema, { unique: ['email'] })`, auto mode) are checked in that same step, so two concurrent writers cannot both store the value; the loser gets a `UniqueConstraintError`. Such a collection writes the index before the document file.
 - For path-mode collections, the index also contains the path hierarchy.
 
 ---
@@ -563,7 +565,7 @@ Every runtime implements this interface. The entire core (Collections, Queries, 
 
 - **Reactivity** (live queries, `live()`, `watch()`, framework adapters) runs via an internal EventEmitter in the core. Every mutation through the API automatically triggers subscribers. Works **on all runtimes** — no adapter support needed.
 - **External Watch** (`watch` in the StorageAdapter) detects changes that happen **outside the API** (e.g. an agent edits JSON files directly). Only relevant and useful on filesystem runtimes. On Browser/Edge/Memory there is no external access → not applicable.
-- **Conditional writes** (`readVersioned`/`writeIf`) let the core write `_index.json` as a compare-and-swap, so concurrent writers keep each other's entries. R2 (etag), IndexedDB (one transaction) and Memory implement it; FsAdapter does not, there the last writer wins. `close` releases connections (IndexedDB) and is called by `db.close()`.
+- **Conditional writes** (`readVersioned`/`writeIf`) let the core write `_index.json` as a compare-and-swap, so concurrent writers keep each other's entries. R2 (etag), IndexedDB (one transaction), Memory (a counter) and FsAdapter (content hash, check and write under a lock per path within the process) implement it; an adapter without the pair writes the index unconditionally. `close` releases connections (IndexedDB) and is called by `db.close()`.
 
 ---
 
@@ -590,7 +592,7 @@ All three support `fs`-compatible APIs. A single `FsAdapter` covers all of them.
 const db = flatdb('./data')
 
 // Under the hood FsAdapter uses:
-// Node: fs.promises.readFile / writeFile
+// Node: fs.promises.readFile / writeFile; every write goes to a temp file and is renamed into place
 // Bun:  compatible with fs.promises (optionally Bun.file() for more speed)
 // Deno: compatible via node:fs compat layer
 ```
@@ -641,7 +643,7 @@ const db = flatdb(new R2Adapter({ bucket: env.CONTENT, prefix: 'data' }))
 Limitations on Edge:
 
 - No External Watch (no external access possible → n/a). Reactivity via internal EventEmitter works normally.
-- Writes from concurrent requests are not serialized; the README section "Cloudflare R2" explains the consequences, issue #3 tracks conditional index writes.
+- Concurrent requests keep each other's index entries: `_index.json` is a compare-and-swap on the etag. Writes to the same document are last-writer-wins; see the README section "Concurrent writers".
 - Folder structure is emulated via key prefixes
 - KV stores (Vercel KV, Cloudflare KV) are eventually consistent → reads may be briefly stale. R2 is strongly consistent.
 
