@@ -202,6 +202,21 @@ import { R2Adapter } from '@loewen-digital/flatdb'
 const db = flatdb(new R2Adapter({ bucket: env.CONTENT }))
 ```
 
+## Concurrent writers
+
+Several writers on one collection (two requests, two tabs, one `flatdb()` per request) keep each other's entries. `_index.json` is written as a compare-and-swap: a writer that lost the race waits a few milliseconds, reloads the index, re-applies its change and tries again, up to twenty times, then it throws. The document file is already there in that case and `rebuildIndex()` picks it up.
+
+| Adapter            | Compare-and-swap on                        | Holds across                                |
+| ------------------ | ------------------------------------------ | ------------------------------------------- |
+| `FsAdapter`        | content hash, check and write under a lock | every `flatdb()` instance in one process    |
+| `R2Adapter`        | the object's etag                          | every Worker request and isolate            |
+| `IndexedDBAdapter` | stored content, in one transaction         | every tab on the database                   |
+| `MemoryAdapter`    | a counter per key                          | every collection on the same adapter object |
+
+- **`FsAdapter` is safe within one process.** Every file is written through a temp file and a `rename`, so a reader sees the old or the new content, never half a file. Separate processes on one folder (two dev servers, an app and a script) are not coordinated: they never tear a file, but one can still drop the other's index entry. `rebuildIndex()` restores it.
+- **Writes to the same document are last-writer-wins.** Nothing serializes two updates of one id.
+- **Custom adapters** take part by implementing the optional `readVersioned` and `writeIf`; without them the index is written unconditionally.
+
 ## Cloudflare R2
 
 `R2Adapter` stores every document as an object in an R2 bucket. Keys mirror the file layout (`users/xk7f2a.json`, `pages/blog/my-first-post.json`), so a bucket looks exactly like a `./data` folder. It takes any R2 binding and needs no Cloudflare types at compile time.
@@ -236,7 +251,7 @@ export const load = async ({ platform }) => {
 What to know when running on Workers:
 
 - **One database per request.** A collection caches `_index.json` in memory and refreshes it only on its own writes. Build `flatdb()` inside the request, as above, so every request reads the current index. A module-level instance serves stale results once another isolate writes; its writes stay safe, see the next point.
-- **Concurrent writes keep the index consistent.** `_index.json` is written with a compare-and-swap on the object's etag. A writer that lost the race reloads the index, re-applies its change and tries again, five times, then it throws; the document file is already there and `rebuildIndex()` picks it up. The same guarantee holds for `MemoryAdapter` and `IndexedDBAdapter`; `FsAdapter` writes unconditionally. Nothing serializes writes to the _same document_: two requests updating one id at once end last-writer-wins.
+- **Concurrent writes keep the index consistent.** `_index.json` is written with a compare-and-swap on the object's etag, see [Concurrent writers](#concurrent-writers).
 - **No external watch.** R2 bindings have no change notifications, so `{ watch: true }` has no effect. Live queries still react to writes made through the same instance.
 - **`nodejs_compat` is required.** The package entry also exports `FsAdapter`, whose `fs` import has to resolve even though Workers never call it.
 

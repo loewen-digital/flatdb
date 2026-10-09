@@ -1,14 +1,26 @@
 import type { StorageAdapter } from './types.js'
 
-const MAX_ATTEMPTS = 5
+const MAX_ATTEMPTS = 20
+const BACKOFF_BASE_MS = 4
+const BACKOFF_CAP_MS = 150
+
+/**
+ * Waits a random time that grows with every lost race, so writers that collided
+ * do not all reload and collide again at the same moment.
+ */
+function backoff(attempt: number): Promise<void> {
+  const ceiling = Math.min(BACKOFF_CAP_MS, BACKOFF_BASE_MS * 2 ** (attempt - 1))
+  return new Promise((resolve) => setTimeout(resolve, Math.random() * ceiling))
+}
 
 /**
  * A collection's `_index.json`: cached in memory, written through the adapter.
  *
  * With an adapter that offers `readVersioned`/`writeIf`, `commit` is a
  * compare-and-swap: when another writer changed the index in between, the index
- * is reloaded and the change applied again, so concurrent writers keep each
- * other's entries. Without that support the write is unconditional.
+ * is reloaded and the change applied again after a short random wait, so
+ * concurrent writers keep each other's entries. Without that support the write
+ * is unconditional.
  */
 export class IndexStore<T> {
   private cache: Record<string, T> | null = null
@@ -57,6 +69,7 @@ export class IndexStore<T> {
         return
       }
       this.invalidate()
+      if (attempt < MAX_ATTEMPTS) await backoff(attempt)
     }
     throw new Error(
       `${this.path}: another writer kept changing the index (${MAX_ATTEMPTS} attempts)`,
