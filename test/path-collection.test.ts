@@ -313,6 +313,20 @@ describe('PathCollection', () => {
       await col.rebuildIndex()
       expect(await col.count()).toBe(2)
     })
+
+    it('skips files that are not documents', async () => {
+      const col = new PathCollection(adapter, 'pages')
+      await col.insert('a', { title: 'A' })
+      await col.insert('blog/post', { title: 'Post' })
+      await adapter.write('pages/.DS_Store', 'x')
+      await adapter.write('pages/blog/notes.txt', 'x')
+
+      await col.rebuildIndex()
+      expect(Object.keys(JSON.parse((await adapter.read('pages/_index.json'))!)).sort()).toEqual([
+        'a',
+        'blog/post',
+      ])
+    })
   })
 
   describe('with Zod schema', () => {

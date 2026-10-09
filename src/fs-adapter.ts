@@ -117,7 +117,8 @@ export class FsAdapter implements StorageAdapter {
       // Temp files of writes in flight (or of a crashed process) are not content
       return entries.filter((entry) => !entry.endsWith(TMP_SUFFIX))
     } catch (err: any) {
-      if (err.code === 'ENOENT') return []
+      // A file has no entries, like a key without children in the other adapters
+      if (err.code === 'ENOENT' || err.code === 'ENOTDIR') return []
       throw err
     }
   }

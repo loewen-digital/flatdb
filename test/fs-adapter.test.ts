@@ -63,6 +63,11 @@ describe('FsAdapter', () => {
     expect(entries).toEqual([])
   })
 
+  it('list returns empty array for a file', async () => {
+    await adapter.write('dir/a.json', '{}')
+    expect(await adapter.list('dir/a.json')).toEqual([])
+  })
+
   it('mkdir creates directories recursively', async () => {
     await adapter.mkdir('x/y/z')
     expect(await adapter.exists('x/y/z')).toBe(true)
