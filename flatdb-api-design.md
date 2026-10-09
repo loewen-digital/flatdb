@@ -445,6 +445,7 @@ const Todo = collection(
 collection(schema, {
   unknownFields: 'strip', // 'strip' | 'passthrough' | 'error'
   validateOnRead: true, // Default: true
+  unique: ['email'], // Auto mode: a second document with the same value throws UniqueConstraintError
 })
 ```
 

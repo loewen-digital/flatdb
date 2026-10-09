@@ -38,6 +38,11 @@ export interface CollectionOptions {
   unknownFields?: 'strip' | 'passthrough' | 'error'
   validateOnRead?: boolean
   migrate?: (doc: any) => any
+  /**
+   * Fields (dot paths allowed) whose value may occur only once in the collection.
+   * A write that would duplicate one throws `UniqueConstraintError`. Auto mode only.
+   */
+  unique?: string[]
 }
 
 export interface CollectionDefinition {

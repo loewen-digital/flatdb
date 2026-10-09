@@ -27,6 +27,9 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
     options: CollectionOptions = {},
   ) {
     this.schema = schema
+    if (options.unique?.length) {
+      throw new Error(`${name}: "unique" is not supported in path mode; the path is the identity`)
+    }
     this.options = { mode: 'path', unknownFields: 'strip', validateOnRead: true, ...options }
     this.index = new IndexStore<T>(adapter, `${name}/${INDEX_FILE}`)
   }

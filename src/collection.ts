@@ -14,6 +14,7 @@ import { EventEmitter } from './emitter.js'
 import { liveQuery, watchQuery, type LiveErrorHandler } from './live.js'
 import { deepMerge } from './merge.js'
 import { IndexStore } from './index-store.js'
+import { assertUnique } from './unique.js'
 
 const INDEX_FILE = '_index.json'
 
@@ -21,6 +22,7 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
   private schema?: ZodType
   private options: CollectionOptions
   private index: IndexStore<T>
+  private unique: string[]
   private refMetas: RefMeta[]
   private emitter = new EventEmitter()
 
@@ -35,6 +37,7 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
   ) {
     this.schema = schema
     this.options = { mode: 'auto', unknownFields: 'strip', validateOnRead: true, ...options }
+    this.unique = options.unique ?? []
     this.refMetas = schema ? extractRefMeta(schema) : []
     this.index = new IndexStore<T>(adapter, `${name}/${INDEX_FILE}`)
   }
@@ -117,17 +120,52 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
     await this.adapter.write(this.docPath(id), JSON.stringify(serialized, null, 2))
   }
 
+  /**
+   * Persists documents and their index entries.
+   *
+   * Without unique fields the files go first: a crash in between leaves a
+   * document that `rebuildIndex()` picks up. With unique fields the index goes
+   * first: check and entry are one compare-and-swap, so of two concurrent writers
+   * only one gets through, and the one that lost has written no file.
+   */
+  private async save(docs: Record<string, T>, created: boolean): Promise<void> {
+    const stored: Record<string, T> = {}
+    for (const [id, doc] of Object.entries(docs)) stored[id] = this.serializeDoc(doc) as T
+    const writeDocs = async () => {
+      for (const [id, doc] of Object.entries(docs)) await this.writeDoc(id, doc)
+    }
+
+    if (this.unique.length === 0) {
+      await writeDocs()
+      await this.index.commit((index) => Object.assign(index, stored))
+      return
+    }
+
+    await this.index.commit((index) => {
+      assertUnique(this.name, this.unique, index, stored, (entry) => this.migrate({ ...entry }))
+      Object.assign(index, stored)
+    })
+    try {
+      await writeDocs()
+    } catch (err) {
+      // A new document without its file must not keep its unique values taken
+      if (created) {
+        await this.index
+          .commit((index) => {
+            for (const id of Object.keys(stored)) delete index[id]
+          })
+          .catch(() => {})
+      }
+      throw err
+    }
+  }
+
   // --- CRUD: Auto Mode ---
 
   async insert(doc: Record<string, any>): Promise<T & { _id: string }> {
     const validated = this.validateWrite(doc)
     const id = nanoid(8)
-    await this.writeDoc(id, validated)
-
-    const stored = this.serializeDoc(validated) as T
-    await this.index.commit((index) => {
-      index[id] = stored
-    })
+    await this.save({ [id]: validated }, true)
     this.notify()
 
     return { _id: id, ...validated }
@@ -135,17 +173,15 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
 
   async insertMany(docs: Record<string, any>[]): Promise<(T & { _id: string })[]> {
     const results: (T & { _id: string })[] = []
-    const stored: Record<string, T> = {}
+    const validated: Record<string, T> = {}
 
     for (const doc of docs) {
-      const validated = this.validateWrite(doc)
       const id = nanoid(8)
-      await this.writeDoc(id, validated)
-      stored[id] = this.serializeDoc(validated) as T
-      results.push({ _id: id, ...validated })
+      validated[id] = this.validateWrite(doc)
+      results.push({ _id: id, ...validated[id] })
     }
 
-    await this.index.commit((index) => Object.assign(index, stored))
+    await this.save(validated, true)
     this.notify()
     return results
   }
@@ -210,7 +246,7 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
 
   async update(filter: QueryFilter, changes: Record<string, any>): Promise<number> {
     const index = await this.index.load()
-    const stored: Record<string, T> = {}
+    const changed: Record<string, T> = {}
 
     const mergeData = changes.$set ?? changes
 
@@ -219,15 +255,13 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
       const withId = { _id: id, ...doc }
       if (matchesFilter(withId, filter)) {
         const merged = deepMerge({ ...doc }, mergeData)
-        const validated = this.validateWrite(merged)
-        await this.writeDoc(id, validated)
-        stored[id] = this.serializeDoc(validated) as T
+        changed[id] = this.validateWrite(merged)
       }
     }
 
-    const updated = Object.keys(stored).length
+    const updated = Object.keys(changed).length
     if (updated > 0) {
-      await this.index.commit((current) => Object.assign(current, stored))
+      await this.save(changed, false)
       this.notify()
     }
     return updated

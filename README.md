@@ -155,6 +155,32 @@ const Todo = collection(
 
 `migrate` runs on every read, before the schema is checked and before filters are matched, so `find({ status: 'done' })` finds documents that still say `done: true` on disk. It works without a schema too. Files are not rewritten on read; a document gets its new shape on the next write.
 
+## Unique Fields
+
+```ts
+import { flatdb, collection, UniqueConstraintError } from '@loewen-digital/flatdb'
+
+const db = flatdb('./data', {
+  users: collection(userSchema, { unique: ['email'] }),
+})
+
+try {
+  await db.users.insert({ email: 'ann@example.com', name: 'Ann' })
+} catch (error) {
+  if (error instanceof UniqueConstraintError) {
+    // error.collection === 'users', error.field === 'email', error.value === 'ann@example.com'
+  }
+}
+```
+
+`insert`, `insertMany` and `update` throw `UniqueConstraintError` when the write would store a second document with the same value; nothing is written then, and `insertMany` is all or nothing. Fields can be dot paths (`'profile.handle'`), and each listed field is unique on its own.
+
+- **Safe against concurrent writers.** The check is part of the `_index.json` compare-and-swap, so of two requests that insert the same address at once exactly one succeeds, on every built-in adapter (see [Concurrent writers](#concurrent-writers)). A custom adapter without `readVersioned`/`writeIf` still checks, but two overlapping writers can both pass.
+- **Values are compared as stored.** `'A@x.org'` and `'a@x.org'` are different, so normalise before writing. `null` and a missing field are no value: any number of documents may leave the field empty.
+- **The index is written before the file** in a collection with unique fields (elsewhere the file goes first). A process that dies in between leaves an entry without a file: queries still return the document, `rebuildIndex()` drops it.
+- **Existing duplicates** are not reported when you add `unique` later; a duplicate is refused the next time one of the documents is written. `rebuildIndex()` mirrors the files and does not check.
+- **Auto mode only.** In path mode the path is the unique identity; `unique` throws there.
+
 ## Reactivity
 
 ```ts

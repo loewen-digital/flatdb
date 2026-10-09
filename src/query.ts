@@ -1,6 +1,6 @@
 import type { QueryFilter, QueryOptions } from './types.js'
 
-function getNestedValue(obj: any, path: string): any {
+export function getNestedValue(obj: any, path: string): any {
   const parts = path.split('.')
   let current = obj
   for (const part of parts) {
