@@ -1,20 +1,46 @@
 name: CI
 
+# The library shape of loewen-digital/agent-loop snippets/ci.yml: the jobs `e2e` and `deploy`, the
+# `tags` trigger and the Cloudflare env are gone; release.yml publishes and guards the tag.
+#   pull request        → verify
+#   push to main        → verify; a push that touches nothing but docs runs nothing
+#   manual run          → verify, from any branch (Actions tab → Run workflow)
+# Decision: docs/decisions/0014-ci-library-shape.md
+
 on:
   push:
     branches: [main]
+    paths-ignore: ['docs/**', '**.md']
   pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch or pull request cancels the running one. The expression is the
+# snippet's, kept verbatim so this file stays diffable against it; without a tags trigger it is
+# always true.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
-  ci:
+  verify:
+    name: Check, unit, build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
+
       - uses: actions/setup-node@v5
         with:
           node-version-file: package.json
           cache: npm
+
       - run: npm ci
-      - run: npm run check
-      - run: npm test
-      - run: npm run build
+
+      - name: Format, lint, types
+        run: npm run check
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build

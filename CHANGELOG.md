@@ -7,6 +7,8 @@ is the topmost released one here.
 
 ## Unreleased
 
+- For contributors: CI is the library shape of the org's shared workflow. One job `verify` (check, unit tests, build) on pushes to `main`, pull requests and by hand; a push that touches only `docs/` or Markdown runs nothing, and a newer push cancels the running one. Decision: [0014](docs/decisions/0014-ci-library-shape.md). (#12)
+
 ## v0.3.0 · 2026-10-09 · Unique fields, a concurrency-safe FsAdapter, Vite+
 
 - **Unique fields:** `collection(schema, { unique: ['email'] })` refuses an `insert`, `insertMany` or `update` that would store a second document with the same value and throws the new `UniqueConstraintError` (`collection`, `field`, `value`). The check runs inside the `_index.json` compare-and-swap, so two requests registering the same address at once cannot both succeed; the pattern `findOne` then `insert` could. Dot paths work, `null` and missing fields are not duplicates, path mode does not offer it. In a collection with unique fields the index is written before the document file. README section "Unique Fields". Decision: [0013](docs/decisions/0013-unique-fields.md). (#9)
