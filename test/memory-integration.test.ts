@@ -377,8 +377,8 @@ describe('flatdb() with MemoryAdapter', () => {
       pages: collection(z.object({ title: z.string() }), { mode: 'path' }),
     })
 
-    await (db.pages as PathCollection).insert('blog/post', { title: 'My Post' })
-    const doc = await (db.pages as PathCollection).get('blog/post')
+    await db.pages.insert('blog/post', { title: 'My Post' })
+    const doc = await db.pages.get('blog/post')
     expect(doc!.title).toBe('My Post')
   })
 })

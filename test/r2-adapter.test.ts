@@ -136,7 +136,7 @@ describe('R2Adapter', () => {
   })
 
   it('does not offer watch', () => {
-    expect(adapter.watch).toBeUndefined()
+    expect('watch' in adapter).toBe(false)
   })
 
   describe('versioned writes', () => {

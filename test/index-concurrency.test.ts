@@ -60,7 +60,9 @@ describe.each(adapters)('concurrent index writes on %s', (_name, make) => {
     expect(await b.update({ _id: x._id }, { name: 'X2' })).toBe(1)
     expect(await b.delete({ _id: y._id })).toBe(1)
 
-    const names = (await new Collection(adapter, 'users').find()).map((d) => d.name).sort()
+    const names = (await new Collection(adapter, 'users').find())
+      .map((d) => d.name as string)
+      .sort()
     expect(names).toEqual(['X2', 'Z'])
   })
 
@@ -99,15 +101,13 @@ describe('a burst of writers, one database per request', () => {
     const dir = path.join(tmpRoot, 'burst')
     const open = () => flatdb(new FsAdapter(dir), { users: collection() })
 
-    await Promise.all(
-      Array.from({ length: 40 }, (_, n) => (open().users as Collection).insert({ n })),
-    )
+    await Promise.all(Array.from({ length: 40 }, (_, n) => open().users.insert({ n })))
 
     const files = (await fs.readdir(path.join(dir, 'users'))).filter((f) => f !== '_index.json')
     const index = JSON.parse(await fs.readFile(path.join(dir, 'users', '_index.json'), 'utf-8'))
     expect(files).toHaveLength(40)
     expect(Object.keys(index).sort()).toEqual(files.map((f) => f.replace(/\.json$/, '')).sort())
-    expect(await (open().users as Collection).count()).toBe(40)
+    expect(await open().users.count()).toBe(40)
   })
 
   it('MemoryAdapter: 40 parallel collections on one adapter keep every entry', async () => {

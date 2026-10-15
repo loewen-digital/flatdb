@@ -299,12 +299,12 @@ export class Collection<T extends Record<string, any> = Record<string, any>> {
    * Runs the query now and after every change. Errors from the query or the
    * callback go to `onError` (default: logged); the subscription stays alive.
    */
+  live(cb: (results: (T & { _id: string })[]) => void, onError?: LiveErrorHandler): () => void
   live(
     filter: QueryFilter,
     cb: (results: (T & { _id: string })[]) => void,
     onError?: LiveErrorHandler,
   ): () => void
-  live(cb: (results: (T & { _id: string })[]) => void, onError?: LiveErrorHandler): () => void
   live(
     filterOrCb: QueryFilter | ((results: (T & { _id: string })[]) => void),
     cbOrOnError?: ((results: (T & { _id: string })[]) => void) | LiveErrorHandler,

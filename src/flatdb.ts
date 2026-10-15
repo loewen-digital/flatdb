@@ -1,5 +1,11 @@
 import type { ZodType } from 'zod'
-import type { StorageAdapter, CollectionOptions, CollectionDefinition } from './types.js'
+import type {
+  StorageAdapter,
+  CollectionOptions,
+  CollectionDefinition,
+  CollectionMode,
+  DocumentOf,
+} from './types.js'
 import { FsAdapter } from './fs-adapter.js'
 import { IndexedDBAdapter } from './indexeddb-adapter.js'
 import { Collection } from './collection.js'
@@ -10,15 +16,22 @@ export interface FlatDbOptions {
   watch?: boolean
 }
 
-export function collection(
-  schema?: ZodType,
-  options: CollectionOptions = {},
-): CollectionDefinition {
+export function collection<
+  S extends ZodType | undefined = undefined,
+  M extends CollectionMode = 'auto',
+>(
+  schema?: S,
+  options: CollectionOptions & { mode?: M } = {},
+): CollectionDefinition<NoInfer<S>, NoInfer<M>> {
   return { schema, options }
 }
 
 type CollectionMap<T extends Record<string, CollectionDefinition>> = {
-  [K in keyof T]: Collection | PathCollection
+  [K in keyof T]: T[K] extends CollectionDefinition<infer S, infer M>
+    ? M extends 'path'
+      ? PathCollection<DocumentOf<S>>
+      : Collection<DocumentOf<S>>
+    : never
 }
 
 export type FlatDb<T extends Record<string, CollectionDefinition>> = CollectionMap<T> & {

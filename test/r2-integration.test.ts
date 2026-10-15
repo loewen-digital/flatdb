@@ -35,7 +35,7 @@ describe('Collection (auto mode) with R2Adapter', () => {
     bucket.calls.length = 0
     const admins = await fresh.find({ role: 'admin' })
 
-    expect(admins.map((d) => d.name).sort()).toEqual(['A', 'C'])
+    expect(admins.map((d) => d.name as string).sort()).toEqual(['A', 'C'])
     expect(bucket.calls).toEqual(['get users/_index.json'])
   })
 
@@ -199,8 +199,8 @@ describe('flatdb() with R2Adapter', () => {
       pages: collection(z.object({ title: z.string() }), { mode: 'path' }),
     })
 
-    await (db.pages as PathCollection).insert('blog/post', { title: 'My Post' })
-    expect((await (db.pages as PathCollection).get('blog/post'))!.title).toBe('My Post')
+    await db.pages.insert('blog/post', { title: 'My Post' })
+    expect((await db.pages.get('blog/post'))!.title).toBe('My Post')
   })
 
   it('watch option is ignored without adapter support', async () => {

@@ -74,7 +74,7 @@ describe('unique fields', () => {
     await expect(col.update({ team: 'x' }, { email: 'same@example.com' })).rejects.toBeInstanceOf(
       UniqueConstraintError,
     )
-    expect((await col.find()).map((d) => d.email).sort()).toEqual([
+    expect((await col.find()).map((d) => d.email as string).sort()).toEqual([
       'a@example.com',
       'b@example.com',
     ])
@@ -170,7 +170,7 @@ describe('unique fields', () => {
         unique: ['email'],
       }),
     })
-    const col = db.users as Collection
+    const col = db.users
 
     await col.insert({ email: 'a@example.com', name: 'A' })
     await expect(col.insert({ email: 'a@example.com', name: 'B' })).rejects.toBeInstanceOf(

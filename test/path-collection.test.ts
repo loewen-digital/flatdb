@@ -92,7 +92,7 @@ describe('PathCollection', () => {
     it('finds direct children with *', async () => {
       const results = await col.find({ $path: 'blog/*' })
       expect(results).toHaveLength(2)
-      expect(results.map((r) => r.title).sort()).toEqual(['Post 1', 'Post 2'])
+      expect(results.map((r) => r.title as string).sort()).toEqual(['Post 1', 'Post 2'])
     })
 
     it('finds all descendants with **', async () => {

@@ -63,7 +63,7 @@ describe('Collection (auto mode)', () => {
 
     it('all appear in the index', async () => {
       const col = new Collection(adapter, 'users')
-      const results = await col.insertMany([{ name: 'A' }, { name: 'B' }])
+      await col.insertMany([{ name: 'A' }, { name: 'B' }])
 
       const count = await col.count()
       expect(count).toBe(2)

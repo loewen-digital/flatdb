@@ -7,6 +7,10 @@ is the topmost released one here.
 
 ## Unreleased
 
+- **Typed collections:** `flatdb()` types each collection from its definition. `collection(schema)` gives a `Collection` whose `find`, `findOne`, `findById` and `insert` return the schema's output type plus `_id`; `{ mode: 'path' }` gives a `PathCollection`; without a schema documents stay `Record<string, any>`. Collections pass to structural types like fullstack's `createFlatdbAuthAdapter` without `as Collection`. Code that relied on the old union may now see stricter types. Needs TypeScript 5.4 or newer. No runtime change. Decision: [0015](docs/decisions/0015-collection-types-from-the-definition.md). (#7)
+- `live(cb, onError)` on `Collection` and `PathCollection` types the callback's results; before, the parameter was implicitly `any` and failed under `strict`.
+- For contributors: `npm run check` lints and type-checks `test/` too; `test/types.test-d.ts` asserts the collection types.
+
 - For contributors: CI is the library shape of the org's shared workflow. One job `verify` (check, unit tests, build) on pushes to `main`, pull requests and by hand; a push that touches only `docs/` or Markdown runs nothing, and a newer push cancels the running one. Decision: [0014](docs/decisions/0014-ci-library-shape.md). (#12)
 
 ## v0.3.0 · 2026-10-09 · Unique fields, a concurrency-safe FsAdapter, Vite+

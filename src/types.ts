@@ -45,10 +45,31 @@ export interface CollectionOptions {
   unique?: string[]
 }
 
-export interface CollectionDefinition {
-  schema?: ZodType
-  options: CollectionOptions
+export type CollectionMode = 'auto' | 'path'
+
+/**
+ * What `collection()` returns. `S` and `M` carry the schema and the mode into the type of
+ * `flatdb()`; the defaults stand for any definition and type it as before.
+ */
+export interface CollectionDefinition<
+  S extends ZodType | undefined = ZodType | undefined,
+  M extends CollectionMode = CollectionMode,
+> {
+  schema?: S
+  options: CollectionOptions & { mode?: M }
 }
+
+type IsAny<T> = 0 extends 1 & T ? true : false
+
+/** The document type a schema yields: its output type, or `Record<string, any>` without one. */
+export type DocumentOf<S> =
+  S extends ZodType<infer O, any, any>
+    ? IsAny<O> extends true
+      ? Record<string, any>
+      : O extends Record<string, any>
+        ? O
+        : Record<string, any>
+    : Record<string, any>
 
 export interface QueryFilter {
   [key: string]: any

@@ -34,6 +34,8 @@ const db = flatdb('./data', {
 })
 ```
 
+Each key is typed from its definition: `db.users` is a `Collection` whose `find`, `findOne`, `findById` and `insert` return the schema's output type plus `_id`, and a collection with `{ mode: 'path' }` is a `PathCollection`. Without a schema documents are `Record<string, any>`. A `populate`d ref keeps the type of the stored ID; cast it where you populate. Needs TypeScript 5.4 or newer.
+
 ## Collection Modes
 
 ### Auto Mode (Default)

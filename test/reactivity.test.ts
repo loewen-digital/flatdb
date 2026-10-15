@@ -1,5 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vite-plus/test'
-import { z } from 'zod'
+import { describe, it, expect, beforeEach, afterEach } from 'vite-plus/test'
 import fs from 'fs/promises'
 import path from 'path'
 import os from 'os'

@@ -20,10 +20,10 @@ export default defineConfig({
   test: {
     globals: true,
   },
-  // Lint and type check cover src/ only; the tests were never type-checked (tsconfig includes src)
-  // and their typing waits on the collection types (loewen-digital/flatdb#7).
+  // Lint and type check cover src/ and test/; test/tsconfig.json brings the tests into a program,
+  // and test/types.test-d.ts holds the type-level assertions on flatdb()'s collection types.
   lint: {
-    ignorePatterns: ['dist/', 'test/'],
+    ignorePatterns: ['dist/'],
     categories: { correctness: 'error' },
     // ESLint and typescript-eslint "recommended" rules that sit outside Oxlint's correctness category.
     rules: {

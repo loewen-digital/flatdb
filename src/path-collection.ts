@@ -349,8 +349,8 @@ export class PathCollection<T extends Record<string, any> = Record<string, any>>
    * Runs the query now and after every change. Errors from the query or the
    * callback go to `onError` (default: logged); the subscription stays alive.
    */
-  live(filter: QueryFilter, cb: (results: T[]) => void, onError?: LiveErrorHandler): () => void
   live(cb: (results: T[]) => void, onError?: LiveErrorHandler): () => void
+  live(filter: QueryFilter, cb: (results: T[]) => void, onError?: LiveErrorHandler): () => void
   live(
     filterOrCb: QueryFilter | ((results: T[]) => void),
     cbOrOnError?: ((results: T[]) => void) | LiveErrorHandler,

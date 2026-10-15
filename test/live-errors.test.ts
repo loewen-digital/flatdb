@@ -153,13 +153,7 @@ describe('live query errors: Collection', () => {
     expect(listeners(col)).toBe(0)
 
     await setIndex(adapter, col, 'users', { bad: { name: 123 } })
-    await expect(
-      (async () => {
-        for await (const _ of col.watch()) {
-          /* never */
-        }
-      })(),
-    ).rejects.toBeInstanceOf(z.ZodError)
+    await expect(col.watch()[Symbol.asyncIterator]().next()).rejects.toBeInstanceOf(z.ZodError)
     expect(listeners(col)).toBe(0)
   })
 })
