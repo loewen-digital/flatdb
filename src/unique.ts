@@ -18,9 +18,18 @@ export class UniqueConstraintError extends Error {
  * The value as it is stored, as comparison key. `null` and a missing field have
  * none: any number of documents may leave a unique field empty.
  */
-function keyOf(doc: Record<string, any>, field: string): string | undefined {
+export function keyOf(doc: Record<string, any>, field: string): string | undefined {
   const value = getNestedValue(doc, field)
   return value == null ? undefined : JSON.stringify(value)
+}
+
+/**
+ * File name of a lookup object: the SHA-256 of the key, so any value maps to a short, safe
+ * name and values such as tokens or addresses do not show up in object listings.
+ */
+export async function lookupName(key: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(key))
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
 /**

@@ -517,6 +517,7 @@ data/users/
 - Can be rebuilt from individual files at any time: `db.users.rebuildIndex()`
 - Written as a compare-and-swap: a writer that finds the index changed reloads it, re-applies its change and retries after a short random wait (up to twenty times).
 - Unique fields (`collection(schema, { unique: ['email'] })`, auto mode) are checked in that same step, so two concurrent writers cannot both store the value; the loser gets a `UniqueConstraintError`. Such a collection writes the index before the document file.
+- Adapters that set `pointReads` (R2) skip the index for single-document reads while it is not cached: `findById` reads the document file, `findOne` with one equality on a unique field reads `<collection>/_unique/<field>/<sha256(value)>.json` (`{ id }`) and then the document, checking that the value still matches. Lookups are written after the index CAS; `_unique/_ready.json` lists the fields whose lookups are complete, and only for those is a missing lookup a definite miss. `insert` takes a caller-supplied `_id` (nanoid alphabet, at most 128 characters), checked against the index inside the CAS.
 - For path-mode collections, the index also contains the path hierarchy.
 
 ---

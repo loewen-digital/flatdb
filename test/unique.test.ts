@@ -18,7 +18,9 @@ const users = (adapter: StorageAdapter, unique = ['email']) =>
   new Collection(adapter, 'users', undefined, { unique })
 
 const docFiles = async (adapter: StorageAdapter) =>
-  (await adapter.list('users')).filter((entry) => entry !== '_index.json')
+  (await adapter.list('users')).filter(
+    (entry) => entry.endsWith('.json') && entry !== '_index.json',
+  )
 
 describe('unique fields', () => {
   it('rejects an insert that duplicates the value, with a distinct error', async () => {

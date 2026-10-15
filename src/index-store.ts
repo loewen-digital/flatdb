@@ -31,6 +31,11 @@ export class IndexStore<T> {
     private path: string,
   ) {}
 
+  /** Whether the index is in memory, so reading it costs nothing. */
+  get cached(): boolean {
+    return this.cache !== null
+  }
+
   /** Forget the cached copy; the next access reads from storage. */
   invalidate(): void {
     this.cache = null

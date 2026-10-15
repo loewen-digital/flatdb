@@ -54,6 +54,8 @@ export interface R2AdapterOptions {
  * `watch` is not provided.
  */
 export class R2Adapter implements StorageAdapter {
+  /** Every index read is a GET of the whole collection; collections read single objects instead. */
+  readonly pointReads = true
   private bucket: R2BucketLike
   private prefix: string
 

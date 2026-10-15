@@ -7,6 +7,10 @@ is the topmost released one here.
 
 ## Unreleased
 
+- **Cheap lookups on R2:** a collection that has not loaded its index answers `findById(id)` with one GET of the document and `findOne({ field: value })` on a unique field with two (a lookup object, then the document), instead of downloading the whole collection. A miss costs three GETs. Lookups live under `<collection>/_unique/` and are complete for collections that start empty; for existing data run `rebuildIndex()` once, until then such queries load the index as before. After that every writer of the bucket needs this version. Memory, Fs and IndexedDB are unchanged. README "Cloudflare R2". Decision: [0016](docs/decisions/0016-point-reads-and-unique-lookups.md). (#11)
+- `insert` and `insertMany` take a caller-supplied `_id` (1–128 characters of `A-Z a-z 0-9 _ -`), e.g. a token hash, so `findById` can find a document by it. An existing ID throws `UniqueConstraintError` with `field: '_id'`. Before, an `_id` in the document was ignored with a schema and, without one, stored inside the document while the file got a nanoid.
+- `findById('constructor')` and other names of `Object.prototype` return `null` instead of a function.
+
 - **Typed collections:** `flatdb()` types each collection from its definition. `collection(schema)` gives a `Collection` whose `find`, `findOne`, `findById` and `insert` return the schema's output type plus `_id`; `{ mode: 'path' }` gives a `PathCollection`; without a schema documents stay `Record<string, any>`. Collections pass to structural types like fullstack's `createFlatdbAuthAdapter` without `as Collection`. Code that relied on the old union may now see stricter types. Needs TypeScript 5.4 or newer. No runtime change. Decision: [0015](docs/decisions/0015-collection-types-from-the-definition.md). (#7)
 - `live(cb, onError)` on `Collection` and `PathCollection` types the callback's results; before, the parameter was implicitly `any` and failed under `strict`.
 - For contributors: `npm run check` lints and type-checks `test/` too; `test/types.test-d.ts` asserts the collection types.

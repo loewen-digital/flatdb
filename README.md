@@ -57,6 +57,8 @@ await db.users.update({ _id: 'xk7f2a' }, { name: 'Maximilian' })
 await db.users.delete({ _id: 'xk7f2a' })
 ```
 
+Pass `_id` to choose the ID yourself, e.g. the hash of a session token: `insert({ _id: tokenHash, ... })`. It must be 1 to 128 characters of `A-Z a-z 0-9 _ -` (nanoid's alphabet, since it becomes the file name); an ID that exists already throws `UniqueConstraintError` with `field: '_id'` and leaves the stored document alone.
+
 ### Path Mode
 
 File path as identity. Ideal for CMS content, pages, docs.
@@ -181,6 +183,7 @@ try {
 - **Values are compared as stored.** `'A@x.org'` and `'a@x.org'` are different, so normalise before writing. `null` and a missing field are no value: any number of documents may leave the field empty.
 - **The index is written before the file** in a collection with unique fields (elsewhere the file goes first). A process that dies in between leaves an entry without a file: queries still return the document, `rebuildIndex()` drops it.
 - **Existing duplicates** are not reported when you add `unique` later; a duplicate is refused the next time one of the documents is written. `rebuildIndex()` mirrors the files and does not check.
+- **Cheap lookups on R2.** `findOne({ email })` reads one lookup object and the document instead of the whole collection, see [Cloudflare R2](#cloudflare-r2).
 - **Auto mode only.** In path mode the path is the unique identity; `unique` throws there.
 
 ## Reactivity
@@ -280,6 +283,8 @@ What to know when running on Workers:
 
 - **One database per request.** A collection caches `_index.json` in memory and refreshes it only on its own writes. Build `flatdb()` inside the request, as above, so every request reads the current index. A module-level instance serves stale results once another isolate writes; its writes stay safe, see the next point.
 - **Concurrent writes keep the index consistent.** `_index.json` is written with a compare-and-swap on the object's etag, see [Concurrent writers](#concurrent-writers).
+- **Lookups read single objects.** While a collection has not loaded its index, `findById(id)` reads only `users/<id>.json`, and `findOne({ email })` on a [unique field](#unique-fields) reads a small lookup object and then the document: one or two GETs instead of the whole collection. A miss costs three GETs once the lookups are complete (see below). Everything else, and every write, still goes through `_index.json`.
+- **Lookups for unique fields** live under `<collection>/_unique/<field>/` as one object per value, named by its SHA-256, and are written after the index. `_unique/_ready.json` marks the fields whose lookups are complete: a collection that starts empty has it from its first insert; existing data and fields added to `unique` later fall back to loading the index until you run `rebuildIndex()` once. After that, every writer of the bucket needs this version or newer, since an older one writes no lookups and its documents would not be found by `findOne`.
 - **No external watch.** R2 bindings have no change notifications, so `{ watch: true }` has no effect. Live queries still react to writes made through the same instance.
 - **`nodejs_compat` is required.** The package entry also exports `FsAdapter`, whose `fs` import has to resolve even though Workers never call it.
 

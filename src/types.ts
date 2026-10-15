@@ -31,6 +31,12 @@ export interface StorageAdapter {
    */
   readVersioned?(path: string): Promise<VersionedRead>
   writeIf?(path: string, data: string, version: string | null): Promise<string | null>
+  /**
+   * `true` when reading the whole `_index.json` costs a remote round trip worth avoiding.
+   * Auto-mode collections then answer `findById` and `findOne` on a unique field by reading
+   * single objects while their index is not cached, and keep lookup objects for unique fields.
+   */
+  pointReads?: boolean
 }
 
 export interface CollectionOptions {
